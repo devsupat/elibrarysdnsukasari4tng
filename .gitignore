@@ -28,6 +28,10 @@ Thumbs.db
 # --- OPTIONAL local-only real student seed, if ever extracted out of index.html ---
 seed-data.local.js
 
+# --- TEMPORARY import data (real student PII) — never commit/publish ---
+data/
+*.csv
+
 # --- Node (only if you ever add tooling; app itself needs none) ---
 node_modules/
 *.log

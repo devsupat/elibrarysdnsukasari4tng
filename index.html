@@ -45,11 +45,17 @@ header{
 }
 .hwrap{max-width:1150px; margin:0 auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
 .logo-box{
-  width:64px; height:64px; background:#fff; border:3px solid var(--blue-dark);
-  border-radius:var(--doodle-r); display:flex; align-items:center; justify-content:center;
-  font-size:34px; overflow:hidden; flex-shrink:0; transform:rotate(-2deg);
+  width:68px; height:68px; background:#ffffff; border:3px solid var(--blue-dark);
+  border-radius:18px; display:flex; align-items:center; justify-content:center;
+  font-size:36px; overflow:hidden; flex-shrink:0; transform:rotate(-2deg);
+  padding:3px; box-shadow:0 4px 12px rgba(0,0,0,0.18);
 }
-.logo-box img{width:100%; height:100%; object-fit:cover}
+.logo-box img{
+  width:100%; height:100%; object-fit:contain; border-radius:12px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+}
 .htitle h1{font-size:clamp(24px,4.5vw,38px); line-height:1; text-shadow:2px 2px 0 var(--blue-dark)}
 .htitle p{font-size:13px; opacity:.95; font-weight:600}
 .hclock{margin-left:auto; text-align:right; font-family:'Patrick Hand',cursive}
@@ -101,18 +107,19 @@ main{max-width:1150px; margin:0 auto; padding:18px 12px 60px}
 .stat .ico{font-size:22px}
 
 /* ===== Forms ===== */
-label{display:block; font-weight:800; font-size:13px; margin:8px 0 3px; color:var(--blue-dark)}
+label{display:block; font-weight:800; font-size:15px; margin:10px 0 4px; color:var(--blue-dark)}
 input,select,textarea{
-  width:100%; padding:9px 12px; font-family:'Nunito',sans-serif; font-size:15px;
-  border:2px solid var(--line); border-radius:12px 4px 12px 4px; background:#fff; color:var(--blue-ink);
-  outline:none; transition:.15s;
+  width:100%; padding:11px 14px; font-family:'Nunito',sans-serif; font-size:16px;
+  border:2px solid var(--line); border-radius:12px; background:#fff; color:var(--blue-ink);
+  outline:none; transition:.15s ease; min-height:46px; box-sizing:border-box;
 }
-input:focus,select:focus,textarea:focus{border-color:var(--blue); box-shadow:2px 2px 0 rgba(43,108,230,.25)}
-.frow{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px}
+input:focus,select:focus,textarea:focus{border-color:var(--blue); box-shadow:0 0 0 4px rgba(43,108,230,.18)}
+.frow{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px}
 .btn{
-  font-family:'Patrick Hand',cursive; font-size:17px; cursor:pointer; margin-top:10px;
+  font-family:'Patrick Hand',cursive; font-size:18px; font-weight:700; cursor:pointer; margin-top:10px;
   background:var(--blue); color:#fff; border:2px solid var(--blue-dark);
-  border-radius:var(--doodle-r); padding:8px 20px; transition:.12s; display:inline-block;
+  border-radius:14px; padding:10px 22px; min-height:46px; transition:.12s; display:inline-flex;
+  align-items:center; justify-content:center; gap:6px; touch-action:manipulation;
 }
 .btn:hover{transform:rotate(-1deg) scale(1.04); box-shadow:3px 3px 0 rgba(27,59,143,.3)}
 .btn:active{transform:scale(.97)}
@@ -124,11 +131,26 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue); box-shadow:2px
 .btn:disabled{opacity:.5; cursor:not-allowed; transform:none}
 
 /* ===== Tables ===== */
-.table-wrap{overflow-x:auto; border:2px solid var(--line); border-radius:14px; background:#fff}
-table{width:100%; border-collapse:collapse; font-size:14px; min-width:560px}
-th{background:var(--sky2); font-family:'Patrick Hand',cursive; font-size:16px; padding:8px 10px; text-align:left;
+.table-wrap{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;
+  overscroll-behavior-x:contain;
+  border:2px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  position:relative;
+  margin-bottom:6px;
+  box-shadow:inset -12px 0 10px -10px rgba(43,108,230,.22);
+}
+.table-wrap::-webkit-scrollbar{height:6px}
+.table-wrap::-webkit-scrollbar-track{background:var(--sky); border-radius:4px}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px}
+.table-wrap::-webkit-scrollbar-thumb:hover{background:var(--blue)}
+table{width:100%; border-collapse:collapse; font-size:15px; min-width:580px}
+th{background:var(--sky2); font-family:'Patrick Hand',cursive; font-size:17px; padding:10px 12px; text-align:left;
   border-bottom:2px dashed var(--blue); white-space:nowrap}
-td{padding:7px 10px; border-bottom:1px dashed var(--line); vertical-align:middle}
+td{padding:9px 12px; border-bottom:1px dashed var(--line); vertical-align:middle}
 tr:hover td{background:var(--sky)}
 .badge{display:inline-block; padding:2px 10px; border-radius:20px 6px 20px 6px; font-size:12px; font-weight:800; border:2px solid}
 .b-blue{background:var(--sky2); color:var(--blue-dark); border-color:var(--blue)}
@@ -210,10 +232,447 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 .struk hr{border:none; border-top:1px dashed #333; margin:6px 0}
 .struk table{min-width:0; font-size:12px}
 .struk td{padding:1px 2px; border:none}
+/* ===== Mobile Responsive Optimization (Ages 30-55 Usability) ===== */
 @media(max-width:640px){
-  .hclock{margin-left:0; text-align:left; width:100%}
-  .card{padding:14px}
-  main{padding:12px 8px 60px}
+  header{padding:12px 12px 10px}
+  .hwrap{gap:10px; align-items:center}
+  .logo-box{width:56px; height:56px; border-radius:14px; padding:2px}
+  .htitle h1{font-size:24px}
+  .htitle p{font-size:12.5px; opacity:.9}
+  .hclock{
+    margin-left:0; text-align:left; width:100%; display:flex;
+    justify-content:space-between; align-items:center;
+    background:rgba(255,255,255,.15); padding:6px 12px; border-radius:10px; margin-top:6px;
+  }
+  .hclock .time{font-size:22px}
+  .hclock .date{font-size:12px}
+  
+  /* Petugas auth bar (#sbBar) on mobile: flow cleanly as a banner above header content without overlap */
+  #sbBar {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    margin-bottom: 10px !important;
+    justify-content: space-between !important;
+    border-radius: 12px !important;
+    padding: 6px 12px !important;
+    box-sizing: border-box !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  }
+  #sbWho {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    font-size: 12.5px !important;
+  }
+  
+  /* Status pill (#sbStatus) on mobile: flow cleanly below without covering input fields */
+  #sbStatus {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 8px auto 14px !important;
+    width: calc(100% - 16px) !important;
+    max-width: 100% !important;
+    text-align: center !important;
+    font-size: 12px !important;
+    padding: 8px 14px !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Navigation tabs on mobile */
+  .nwrap {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .tab-btn {
+    font-size: 16px;
+    padding: 8px 14px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  /* Cards & Forms on mobile */
+  main {
+    padding: 12px 10px 80px;
+  }
+  .card {
+    padding: 16px 14px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 22px;
+  }
+  .subtitle {
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .frow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .btn {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 18px;
+    min-height: 48px;
+  }
+  .btn.small {
+    width: auto;
+    font-size: 14px;
+    min-height: 38px;
+  }
+}
+
+/* ===== PUBLIC PORTAL DESIGN SYSTEM ===== */
+.hero-card {
+  background: linear-gradient(135deg, #1B3B8F 0%, #2B6CE6 60%, #4a89ff 100%);
+  color: #fff;
+  border-radius: 20px;
+  padding: 36px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 25px rgba(27,59,143,0.25);
+  position: relative;
+  overflow: hidden;
+}
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(4px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.hero-title {
+  font-family: 'Patrick Hand', cursive;
+  font-size: clamp(32px, 6vw, 52px);
+  line-height: 1.1;
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.25);
+}
+.hero-sub {
+  font-size: 16px;
+  opacity: 0.95;
+  line-height: 1.5;
+  max-width: 720px;
+  margin-bottom: 24px;
+  font-weight: 600;
+}
+.hero-cta-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hero-btn {
+  font-size: 18px !important;
+  padding: 12px 24px !important;
+  border-radius: 14px !important;
+}
+
+/* Public Stat Grid */
+.pub-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.pub-stat-card {
+  background: #fff;
+  border: 3px solid var(--blue);
+  border-radius: 18px;
+  padding: 18px 16px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(43,108,230,0.12);
+  transition: transform .2s ease;
+}
+.pub-stat-card:hover {
+  transform: translateY(-4px);
+}
+.pub-stat-card .num {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 38px;
+  color: var(--blue);
+  line-height: 1.1;
+}
+.pub-stat-card .lbl {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--blue-dark);
+  text-transform: uppercase;
+}
+.pub-stat-card .sub-hint {
+  font-size: 11.5px;
+  color: #6a89cc;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.pub-stat-card .ico {
+  font-size: 28px;
+}
+
+/* Feature Navigation Cards */
+.pub-feature-card {
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.pub-feature-card:hover {
+  transform: translateY(-3px) rotate(-0.5deg);
+  box-shadow: 0 8px 20px rgba(43,108,230,0.2);
+}
+.feature-icon {
+  font-size: 40px;
+  width: 64px;
+  height: 64px;
+  background: var(--sky);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid var(--line);
+}
+.feature-body h3 {
+  font-size: 20px;
+  color: var(--blue-dark);
+  margin-bottom: 4px;
+}
+.feature-body p {
+  font-size: 13.5px;
+  color: #4a6bb5;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.link-label {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--blue);
+}
+
+/* Student STU Banner */
+.stu-banner-card {
+  background: linear-gradient(135deg, #fff 0%, #eaf2ff 100%);
+  border: 3px solid var(--blue);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.stu-banner-content {
+  flex: 1;
+  min-width: 260px;
+}
+.stu-badge {
+  display: inline-block;
+  background: var(--yellow);
+  color: var(--blue-ink);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #d4a80e;
+}
+.stu-banner-content h2 {
+  font-size: 24px;
+  color: var(--blue-dark);
+  margin-bottom: 6px;
+}
+.stu-banner-content p {
+  font-size: 14px;
+  color: #3b5998;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.stu-card-illustration {
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+.card-mockup {
+  width: 210px;
+  background: #fff;
+  border: 3px solid var(--blue-dark);
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 4px 4px 0 var(--blue);
+  transform: rotate(2deg);
+}
+.cm-head { font-weight: 800; font-size: 11px; color: var(--blue); }
+.cm-photo { font-size: 32px; margin: 4px 0; }
+.cm-name { font-size: 11px; font-weight: 800; color: #333; }
+.cm-barcode { font-family: monospace; font-size: 14px; letter-spacing: 2px; margin-top: 4px; font-weight: 900; }
+.cm-code { font-size: 11px; font-weight: 800; color: var(--blue-dark); }
+
+/* Skeletons & Cards */
+.karya-skeleton-card {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.sk-img {
+  height: 110px;
+  background: var(--sky2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+.sk-body { padding: 14px; }
+.sk-body h4 { font-size: 16px; margin: 6px 0 4px; color: var(--blue-dark); }
+.sk-body p { font-size: 12.5px; color: #555; margin-bottom: 6px; }
+.sk-text { font-size: 12px; color: #888; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.pub-book-card {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.book-cover {
+  width: 50px;
+  height: 65px;
+  background: var(--sky);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.book-details h4 { font-size: 15px; color: var(--blue-dark); margin-bottom: 2px; }
+.book-details p { font-size: 12px; color: #666; margin-bottom: 4px; }
+.cat-pill { font-size: 11px; background: var(--sky2); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+
+/* Student Access UI Skeleton States */
+.stu-access-container {
+  background: #fff;
+  border: 3px solid var(--blue);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 640px;
+  margin: 0 auto 24px;
+  box-shadow: 0 6px 20px rgba(43,108,230,0.15);
+}
+.stu-state-switcher {
+  background: var(--sky);
+  border: 2px dashed var(--blue);
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.stu-state-btn {
+  font-size: 13px !important;
+  padding: 4px 10px !important;
+  min-height: 32px !important;
+  margin: 2px !important;
+}
+.scan-viewport {
+  width: 100%;
+  max-width: 340px;
+  height: 200px;
+  background: #111;
+  border-radius: 16px;
+  margin: 16px auto;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #00ff88;
+  box-shadow: 0 0 10px #00ff88;
+  animation: scanAnim 2s infinite ease-in-out;
+}
+@keyframes scanAnim {
+  0% { top: 5%; }
+  50% { top: 90%; }
+  100% { top: 5%; }
+}
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid var(--sky2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spinAnim 1s infinite linear;
+  margin: 20px auto;
+}
+@keyframes spinAnim {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer styling */
+.pub-footer {
+  background: #fff;
+  border-top: 3px solid var(--blue);
+  padding: 30px 16px;
+  margin-top: 40px;
+  border-radius: 20px 20px 0 0;
+}
+.pub-footer-wrap {
+  max-width: 1150px;
+  margin: 0 auto;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pub-footer-brand h3 {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 26px;
+  color: var(--blue-dark);
+}
+.pub-footer-brand p {
+  font-size: 13px;
+  color: #4a6bb5;
+  margin-top: 4px;
+}
+.pub-footer-links h4 {
+  font-size: 15px;
+  color: var(--blue-dark);
+  margin-bottom: 8px;
+}
+.pub-footer-links a {
+  display: block;
+  font-size: 13.5px;
+  color: var(--blue);
+  text-decoration: none;
+  margin-bottom: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pub-footer-links a:hover {
+  text-decoration: underline;
 }
 </style>
 </head>
@@ -235,17 +694,493 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   </div>
 </header>
 
-<nav><div class="nwrap">
-  <button class="tab-btn active" data-page="beranda">🏠 Beranda</button>
-  <button class="tab-btn" data-page="anggota">👧 Anggota</button>
-  <button class="tab-btn" data-page="katalog">📖 Katalog</button>
-  <button class="tab-btn" data-page="sirkulasi">🔄 Sirkulasi</button>
-  <button class="tab-btn" data-page="absensi">🖐️ Absensi</button>
-  <button class="tab-btn" data-page="ebook">📱 E-Book</button>
-  <button class="tab-btn" data-page="karya">🎨 Karya Siswa</button>
-  <button class="tab-btn" data-page="statistik">📊 Statistik</button>
-  <button class="tab-btn" data-page="data">⚙️ Data &amp; Sinkron</button>
-</div></nav>
+<nav>
+  <!-- Public Portal Navbar (Default) -->
+  <div class="nwrap" id="pubNav">
+    <button class="tab-btn active" data-page="pub-home">🏠 Beranda</button>
+    <button class="tab-btn" data-page="pub-katalog">📖 Katalog Buku</button>
+    <button class="tab-btn" data-page="pub-karya">🎨 Karya Siswa</button>
+    <button class="tab-btn" data-page="pub-ebook">📱 E-Book</button>
+    <button class="tab-btn" data-page="pub-statistik">📊 Statistik</button>
+    <button class="tab-btn yellow" data-page="pub-akses">🎫 Akses Saya</button>
+    <button class="tab-btn ghost" data-page="pub-petugas">🔐 Area Petugas</button>
+  </div>
+  <!-- Officer Operational Navbar -->
+  <div class="nwrap" id="intNav" style="display:none">
+    <button class="tab-btn yellow" onclick="goPage('pub-home')">⬅️ Portal Publik</button>
+    <button class="tab-btn" data-page="beranda">🏠 Operasional</button>
+    <button class="tab-btn" data-page="anggota">👧 Anggota</button>
+    <button class="tab-btn" data-page="katalog">📖 Katalog Internal</button>
+    <button class="tab-btn" data-page="sirkulasi">🔄 Sirkulasi</button>
+    <button class="tab-btn" data-page="absensi">🖐️ Absensi</button>
+    <button class="tab-btn" data-page="ebook">📱 E-Book Internal</button>
+    <button class="tab-btn" data-page="karya">🎨 Karya Internal</button>
+    <button class="tab-btn" data-page="statistik">📊 Statistik Internal</button>
+    <button class="tab-btn" data-page="data">⚙️ Data &amp; Sinkron</button>
+  </div>
+</nav>
+
+<main>
+<!-- ============ PUBLIC HOME (LANDING PAGE) ============ -->
+<div class="page active" id="page-pub-home">
+  
+  <!-- HERO SECTION -->
+  <div class="hero-card">
+    <div class="hero-badge">✨ Perpustakaan Digital SDN Sukasari 4 Kota Tangerang</div>
+    <h1 class="hero-title">SUPAT LIBRARY</h1>
+    <p class="hero-sub">Pusat Literasi &amp; Kreativitas Digital Sekolah yang Hidup, Inklusif, dan Terbuka untuk Siswa, Guru, Orang Tua, &amp; Masyarakat Sekolah.</p>
+    <div class="hero-cta-group">
+      <button class="btn green hero-btn" onclick="goPage('pub-katalog')">📚 Jelajahi Katalog Buku</button>
+      <button class="btn hero-btn" onclick="goPage('pub-akses')">🎫 Akses Saya (Siswa STU)</button>
+      <button class="btn ghost hero-btn-sec" style="color:#fff;border-color:#fff" onclick="goPage('pub-petugas')">🔐 Area Petugas</button>
+    </div>
+  </div>
+
+  <!-- STATISTIK DI LANDING PAGE (Data Dinamis Placeholder) -->
+  <!-- DATA DINAMIS NANTI DARI SUPABASE -->
+  <!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+  <div class="pub-stat-grid">
+    <div class="pub-stat-card">
+      <div class="ico">👨‍🎓</div>
+      <div class="num" id="pubStatMembers">440+</div>
+      <div class="lbl">Anggota Terdaftar</div>
+      <div class="sub-hint">Siswa, Guru, &amp; Staf</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">📚</div>
+      <div class="num" id="pubStatBooks">1.548+</div>
+      <div class="lbl">Judul Buku</div>
+      <div class="sub-hint">Koleksi Fiksi, Sains, &amp; Pelajaran</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">🔄</div>
+      <div class="num" id="pubStatLoans">390+</div>
+      <div class="lbl">Peminjaman Aktif</div>
+      <div class="sub-hint">Aktivitas Sirkulasi Berjalan</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">🎨</div>
+      <div class="num" id="pubStatKarya">50+</div>
+      <div class="lbl">Karya &amp; E-Book</div>
+      <div class="sub-hint">Kreativitas Siswa Sukasari 4</div>
+    </div>
+  </div>
+
+  <!-- JELAJAHI SUPAT LIBRARY -->
+  <div class="card" style="border:none;background:transparent;box-shadow:none;padding:0;margin-bottom:12px">
+    <h2 style="font-size:26px;color:var(--blue-dark)">🚀 Jelajahi SUPAT LIBRARY</h2>
+    <p class="subtitle" style="margin-bottom:14px">Pilih kebutuhan akses perpustakaan Anda dengan cepat</p>
+  </div>
+  <div class="grid2" style="margin-bottom:24px">
+    <div class="card pub-feature-card" onclick="goPage('pub-katalog')">
+      <div class="feature-icon">📖</div>
+      <div class="feature-body">
+        <h3>Katalog Buku Digital</h3>
+        <p>Cari &amp; cek ketersediaan 1.548+ judul buku perpustakaan secara real-time.</p>
+        <span class="link-label">Lihat Katalog →</span>
+      </div>
+    </div>
+    <div class="card alt pub-feature-card" onclick="goPage('pub-karya')">
+      <div class="feature-icon">🎨</div>
+      <div class="feature-body">
+        <h3>Galeri Karya Siswa</h3>
+        <p>Kumpulan cerita, puisi, pantun, dan lukisan hasil kreativitas siswa SDN Sukasari 4.</p>
+        <span class="link-label">Buka Galeri →</span>
+      </div>
+    </div>
+    <div class="card alt pub-feature-card" onclick="goPage('pub-ebook')">
+      <div class="feature-icon">📱</div>
+      <div class="feature-body">
+        <h3>Rak E-Book Digital</h3>
+        <p>Baca e-book dan bahan literasi digital langsung dari HP atau Laptop Anda.</p>
+        <span class="link-label">Baca E-Book →</span>
+      </div>
+    </div>
+    <div class="card pub-feature-card" onclick="goPage('pub-statistik')">
+      <div class="feature-icon">📊</div>
+      <div class="feature-body">
+        <h3>Statistik Perpustakaan</h3>
+        <p>Lihat rekap aktivitas pembaca, buku terfavorit, dan keaktifan kunjungan sekolah.</p>
+        <span class="link-label">Lihat Statistik →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AKSES CEPAT SISWA -->
+  <div class="card stu-banner-card">
+    <div class="stu-banner-content">
+      <div class="stu-badge">🎫 AKSES KHUSUS SISWA</div>
+      <h2>Punya Kartu Pelajar SDN Sukasari 4?</h2>
+      <p>Scan barcode kartu <b>STU</b> Anda (contoh: <code>STU-2761A4B2</code>) untuk membuka area pribadi perpustakaan tanpa perlu ingat password!</p>
+      <button class="btn green" style="font-size:18px;padding:12px 24px" onclick="goPage('pub-akses')">📷 [ Scan Kartu Saya ]</button>
+    </div>
+    <div class="stu-card-illustration">
+      <div class="card-mockup">
+        <div class="cm-head">SDN SUKASARI 4</div>
+        <div class="cm-photo">🧑‍🎓</div>
+        <div class="cm-name">KARTU SISWA STU</div>
+        <div class="cm-barcode">|||| ||| |||||| ||</div>
+        <div class="cm-code">STU-2761A4B2</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION KARYA SISWA PREVIEW -->
+  <!-- DATA DINAMIS NANTI DARI SUPABASE -->
+  <!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <h2>🎨 Karya Siswa Pilihan</h2>
+        <p class="subtitle" style="margin-bottom:0">Lihat kreativitas dan karya terbaik siswa SDN Sukasari 4 Kota Tangerang</p>
+      </div>
+      <button class="btn ghost small" onclick="goPage('pub-karya')">Lihat Semua Karya →</button>
+    </div>
+    <div class="squiggle"></div>
+    <div class="grid3" id="pubKaryaPreviewGrid">
+      <div class="karya-skeleton-card">
+        <div class="sk-img">🎨</div>
+        <div class="sk-body">
+          <span class="badge b-blue">Cerita / Cerpen</span>
+          <h4>PETUALANGAN DI HUTAN PINUS</h4>
+          <p>Oleh: <b>Aira Amani (Kelas 3A)</b></p>
+          <div class="sk-text">Pada suatu hari yang cerah di pinggir hutan pinus...</div>
+        </div>
+      </div>
+      <div class="karya-skeleton-card">
+        <div class="sk-img">✍️</div>
+        <div class="sk-body">
+          <span class="badge b-green">Puisi</span>
+          <h4>INDONESIAKU NEGERIKU ELOK</h4>
+          <p>Oleh: <b>Budi Santoso (Kelas 5B)</b></p>
+          <div class="sk-text">Hijau sawah membentang luas, angin berhembus menyejukkan...</div>
+        </div>
+      </div>
+      <div class="karya-skeleton-card">
+        <div class="sk-img">🖼️</div>
+        <div class="sk-body">
+          <span class="badge b-orange">Gambar / Komik</span>
+          <h4>SEKOLAH BERSALJU IMPIAN</h4>
+          <p>Oleh: <b>Aisyah Halimah (Kelas 3A)</b></p>
+          <div class="sk-text">Lukisan imajinasi suasana sekolah impian yang penuh warna...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION KATALOG PREVIEW -->
+  <!-- DATA DINAMIS NANTI DARI SUPABASE -->
+  <!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+  <div class="card alt">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <h2>📖 Koleksi Buku Terbaru</h2>
+        <p class="subtitle" style="margin-bottom:0">Jelajahi 1.548+ Koleksi Buku Fiksi, Sains, Ensiklopedia &amp; Pelajaran</p>
+      </div>
+      <button class="btn green" onclick="goPage('pub-katalog')">Jelajahi Seluruh Koleksi →</button>
+    </div>
+    <div class="squiggle"></div>
+    <div class="grid3" id="pubBookPreviewGrid">
+      <div class="pub-book-card">
+        <div class="book-cover">📖</div>
+        <div class="book-details">
+          <span class="badge b-green">Tersedia (1)</span>
+          <h4>12 DONGENG ANAK SEBELUM TIDUR</h4>
+          <p>Kode: <code>202512171058</code></p>
+          <span class="cat-pill">Fiksi / Dongeng</span>
+        </div>
+      </div>
+      <div class="pub-book-card">
+        <div class="book-cover">🔬</div>
+        <div class="book-details">
+          <span class="badge b-green">Tersedia (1)</span>
+          <h4>WHY? KECERDASAN BUATAN</h4>
+          <p>Kode: <code>202512021046</code></p>
+          <span class="cat-pill">Sains / Komik</span>
+        </div>
+      </div>
+      <div class="pub-book-card">
+        <div class="book-cover">🌟</div>
+        <div class="book-details">
+          <span class="badge b-orange">Sedang Dipinjam</span>
+          <h4>LASKAR PELANGI</h4>
+          <p>Kode: <code>202512011014</code></p>
+          <span class="cat-pill">Novel / Fiksi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUBLIC KATALOG ============ -->
+<!-- DATA DINAMIS NANTI DARI SUPABASE -->
+<!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+<div class="page" id="page-pub-katalog">
+  <div class="card">
+    <h2>📖 Katalog Buku Perpustakaan</h2>
+    <p class="subtitle">Cari dan cek status ketersediaan 1.548+ judul buku secara publik tanpa perlu login.</p>
+    <div class="search-bar">
+      <input type="text" id="pubBookSearchInput" placeholder="🔍 Cari judul buku, pengarang, atau kode buku...">
+      <select id="pubBookCatSelect">
+        <option value="">Semua Kategori</option>
+        <option value="Fiksi">Fiksi &amp; Dongeng</option>
+        <option value="Sains">Sains &amp; Komik</option>
+        <option value="Pelajaran">Pelajaran &amp; RPAL</option>
+        <option value="Ensiklopedia">Ensiklopedia &amp; Atlas</option>
+      </select>
+    </div>
+  </div>
+  <div class="card alt">
+    <h3>📚 Hasil Pencarian Katalog <span class="badge b-blue" id="pubBookCountBadge">1.548 Buku</span></h3>
+    <div class="squiggle"></div>
+    <div class="grid3" id="pubBookListGrid">
+      <div class="pub-book-card">
+        <div class="book-cover">📖</div>
+        <div class="book-details">
+          <span class="badge b-green">Tersedia</span>
+          <h4>12 DONGENG ANAK SEBELUM TIDUR</h4>
+          <p>Pengarang: Tim Penerbit</p>
+          <span class="cat-pill">Fiksi / Dongeng</span>
+        </div>
+      </div>
+      <div class="pub-book-card">
+        <div class="book-cover">🔬</div>
+        <div class="book-details">
+          <span class="badge b-green">Tersedia</span>
+          <h4>WHY? KECERDASAN BUATAN</h4>
+          <p>Pengarang: YeaRimDang</p>
+          <span class="cat-pill">Sains / Komik</span>
+        </div>
+      </div>
+      <div class="pub-book-card">
+        <div class="book-cover">🌟</div>
+        <div class="book-details">
+          <span class="badge b-orange">Dipinjam Semua</span>
+          <h4>LASKAR PELANGI</h4>
+          <p>Pengarang: Andrea Hirata</p>
+          <span class="cat-pill">Fiksi / Novel</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUBLIC KARYA SISWA ============ -->
+<!-- DATA DINAMIS NANTI DARI SUPABASE -->
+<!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+<div class="page" id="page-pub-karya">
+  <div class="card">
+    <h2>🎨 Galeri Karya Siswa SDN Sukasari 4</h2>
+    <p class="subtitle">Kumpulan kreativitas, cerita, puisi, pantun, dan lukisan siswa yang telah dipublikasikan.</p>
+    <div class="pill-tabs">
+      <button class="btn small">Semua Karya</button>
+      <button class="btn small ghost">Cerita / Cerpen</button>
+      <button class="btn small ghost">Puisi &amp; Pantun</button>
+      <button class="btn small ghost">Gambar &amp; Komik</button>
+    </div>
+  </div>
+  <div class="grid3" id="pubKaryaFullGrid">
+    <div class="karya-skeleton-card">
+      <div class="sk-img">🎨</div>
+      <div class="sk-body">
+        <span class="badge b-blue">Cerita</span>
+        <h4>PETUALANGAN DI HUTAN PINUS</h4>
+        <p>Oleh: <b>Aira Amani (Kelas 3A)</b></p>
+        <div class="sk-text">Kisah petualangan seru sekelompok sahabat menelusuri keindahan hutan pinus...</div>
+      </div>
+    </div>
+    <div class="karya-skeleton-card">
+      <div class="sk-img">✍️</div>
+      <div class="sk-body">
+        <span class="badge b-green">Puisi</span>
+        <h4>INDONESIAKU NEGERIKU ELOK</h4>
+        <p>Oleh: <b>Budi Santoso (Kelas 5B)</b></p>
+        <div class="sk-text">Untaian kata tentang keindahan alam nusantara dan rasa cinta tanah air...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUBLIC E-BOOK ============ -->
+<!-- DATA DINAMIS NANTI DARI SUPABASE -->
+<!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
+<div class="page" id="page-pub-ebook">
+  <div class="card">
+    <h2>📱 Rak E-Book Digital</h2>
+    <p class="subtitle">Baca buku cerita dan bahan bacaan digital langsung dari perangkat Anda.</p>
+  </div>
+  <div class="grid3" id="pubEbookGrid">
+    <div class="pub-book-card">
+      <div class="book-cover">📱</div>
+      <div class="book-details">
+        <span class="badge b-blue">E-Book PDF</span>
+        <h4>DONGENG NUSANTARA DIGITAL</h4>
+        <p>Kategori: Dongeng Anak</p>
+        <button class="btn small green" style="margin-top:6px" onclick="toast('📖 Membuka preview E-Book...')">📖 Baca Sekarang</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PUBLIC STATISTIK ============ -->
+<!-- Semua angka diisi oleh pubBoot() dari RPC public_stats (anon-safe, agregat saja) -->
+<div class="page" id="page-pub-statistik">
+  <div class="card">
+    <h2>📊 Statistik Perpustakaan Digital</h2>
+    <p class="subtitle">Rekapitulasi publik keaktifan membaca, transaksi koleksi, dan aktivitas kunjungan sekolah — data nyata dari Supabase.</p>
+    <div class="hint">🔒 <b>Privasi Data:</b> Statistik disajikan sebagai agregat. Browser tidak menerima nama, barcode, NIS, atau NISN siswa.</div>
+  </div>
+
+  <div class="pub-stat-grid">
+    <div class="pub-stat-card">
+      <div class="ico">👨‍🎓</div>
+      <div class="num" id="pubStFullAnggota">…</div>
+      <div class="lbl">Total Anggota</div>
+      <div class="sub-hint">Siswa, Guru &amp; Staf Terdaftar</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">📚</div>
+      <div class="num" id="pubStFullJudul">…</div>
+      <div class="lbl">Judul Buku Koleksi</div>
+      <div class="sub-hint" id="pubStFullEksemplar">… eksemplar total</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">🔄</div>
+      <div class="num" id="pubStFullDipinjam">…</div>
+      <div class="lbl">Sedang Dipinjam</div>
+      <div class="sub-hint">Sirkulasi Aktif Saat Ini</div>
+    </div>
+    <div class="pub-stat-card">
+      <div class="ico">📋</div>
+      <div class="num" id="pubStFullTransaksi">…</div>
+      <div class="lbl">Total Transaksi</div>
+      <div class="sub-hint">Sepanjang Masa Aktif</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>🏆 Buku Paling Sering Dipinjam</h3>
+      <p class="subtitle">Berdasarkan data riwayat transaksi nyata dari Supabase</p>
+      <div class="squiggle"></div>
+      <div id="pubPopularBooksGrid" style="display:flex;flex-direction:column;gap:10px">
+        <div style="text-align:center;padding:20px;color:#4a6bb5">Memuat data buku terfavorit…</div>
+      </div>
+    </div>
+    <div class="card alt">
+      <h3>📈 Aktivitas Perpustakaan</h3>
+      <div class="squiggle"></div>
+      <div style="font-size:14px;color:#4a6bb5;line-height:1.6">
+        <div style="margin-bottom:10px">
+          <b>Buku Dipinjam Aktif:</b>
+          <div style="background:var(--sky2);border-radius:8px;height:28px;margin-top:4px;position:relative;overflow:hidden">
+            <div id="pubBarDipinjam" style="background:var(--blue);height:100%;border-radius:8px;transition:width .4s ease;width:0%"></div>
+            <span id="pubBarDipinjamLbl" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--blue-dark)">…</span>
+          </div>
+        </div>
+        <div>
+          <b>Total Transaksi Selesai:</b>
+          <div style="background:var(--sky2);border-radius:8px;height:28px;margin-top:4px;position:relative;overflow:hidden">
+            <div id="pubBarTransaksi" style="background:var(--ok);height:100%;border-radius:8px;transition:width .4s ease;width:0%"></div>
+            <span id="pubBarTransaksiLbl" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--blue-dark)">…</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:#888">
+          ℹ️ Karya Siswa: belum ada endpoint publik — <i>segera hadir</i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AKSES SAYA (STUDENT STU BARCODE ACCESS UI SKELETON) ============ -->
+<div class="page" id="page-pub-akses">
+  <div class="stu-access-container">
+    <div style="text-align:center;margin-bottom:18px">
+      <div class="stu-badge">🎫 LAYANAN MANDIRI SISWA</div>
+      <h2 style="color:var(--blue-dark);font-size:26px">Akses Saya</h2>
+      <p style="font-size:14px;color:#4a6bb5;margin-top:4px">Gunakan <b>Kartu Identitas Terpusat Sekolah</b> dari SDN Sukasari 4. Scan QR code pada kartu, atau masukkan nomor kartu secara manual.</p>
+    </div>
+
+    <!-- State Switcher hanya untuk internal QA — sembunyikan di production -->
+    <div class="stu-state-switcher" style="display:none" id="stuDevSwitcher">
+      <div style="font-size:12px;font-weight:800;color:var(--blue-dark);margin-bottom:4px">🧪 Dev: Demo State:</div>
+      <button class="btn small stu-state-btn" onclick="setStuUiState('initial')">1. Initial</button>
+      <button class="btn small ghost stu-state-btn" onclick="setStuUiState('scanning')">2. Scanning</button>
+      <button class="btn small ghost stu-state-btn" onclick="setStuUiState('loading')">3. Loading</button>
+      <button class="btn small red stu-state-btn" onclick="setStuUiState('notfound')">4. Tak Ditemukan</button>
+      <button class="btn small green stu-state-btn" onclick="setStuUiState('success')">5. Berhasil</button>
+    </div>
+
+    <!-- STATE 1: INITIAL STATE -->
+    <div id="stuStateInitial" class="stu-state-box">
+      <div style="text-align:center;padding:16px 0">
+        <button class="btn green" style="font-size:18px;padding:14px 28px" onclick="stuScanStart()">📷 [ Buka Kamera Scan Barcode STU ]</button>
+        <div style="margin:16px 0;font-size:13px;color:#888">— ATAU MASUKKAN MANUAL —</div>
+        <div style="display:flex;gap:8px;max-width:380px;margin:0 auto">
+          <input type="text" id="stuInputManual" placeholder="cth: 126010800001" style="text-align:center;font-weight:800;letter-spacing:1px"
+            onkeydown="if(event.key==='Enter')stuManualSubmit()">
+          <button class="btn" style="white-space:nowrap" onclick="stuManualSubmit()">🔍 Cek Akses</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 2: SCANNING CAMERA UI SKELETON -->
+    <div id="stuStateScanning" class="stu-state-box" style="display:none">
+      <div style="text-align:center">
+        <h3>📷 Arahkan Kamera ke QR Code Kartu</h3>
+        <p style="font-size:12.5px;color:#666">Posisikan QR code pada kartu sekolah di dalam kotak kamera</p>
+        <div class="scan-viewport">
+          <div class="scan-line"></div>
+          <span style="color:#aaa;font-size:13px">Kamera Aktif...</span>
+        </div>
+        <button class="btn red small" onclick="stuScanStop();setStuUiState('initial')">✖ Batalkan Scan</button>
+      </div>
+    </div>
+
+    <!-- STATE 3: LOADING UI SKELETON -->
+    <div id="stuStateLoading" class="stu-state-box" style="display:none">
+      <div style="text-align:center;padding:30px 0">
+        <div class="spinner"></div>
+        <h3 style="color:var(--blue-dark);margin-top:12px">Memverifikasi Barcode STU...</h3>
+        <p style="font-size:13px;color:#666">Menghubungkan ke database sekolah Supabase</p>
+      </div>
+    </div>
+
+    <!-- STATE 4: BARCODE NOT FOUND UI SKELETON -->
+    <div id="stuStateNotfound" class="stu-state-box" style="display:none">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px">⚠️</div>
+        <h3 style="color:var(--bad);margin:8px 0">Barcode STU Tidak Ditemukan</h3>
+        <p style="font-size:13.5px;color:#555;max-width:380px;margin:0 auto 16px">Barcode ID tidak terdaftar dalam data siswa aktif. Pastikan kartu yang digunakan adalah kartu resmi SDN Sukasari 4.</p>
+        <button class="btn" onclick="setStuUiState('initial')">🔄 Coba Lagi</button>
+      </div>
+    </div>
+
+    <!-- STATE 5: SUCCESS PERSONAL AREA — diisi oleh renderStudentArea(d) -->
+    <div id="stuStateSuccess" class="stu-state-box" style="display:none">
+      <!-- Konten diisi oleh renderStudentArea() saat lookup berhasil. Jangan tambahkan konten hardcoded di sini. -->
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ AREA PETUGAS GATEWAY ============ -->
+<div class="page" id="page-pub-petugas">
+  <div class="stu-access-container" style="max-width:520px;text-align:center">
+    <div style="font-size:44px">🔐</div>
+    <h2 style="color:var(--blue-dark);font-size:26px;margin:8px 0">Area Petugas Perpustakaan</h2>
+    <p style="font-size:14px;color:#4a6bb5;line-height:1.5;margin-bottom:20px">Layanan operasional khusus untuk staf &amp; pustakawan SDN Sukasari 4 Kota Tangerang (sirkulasi, absensi, pengolahan katalog, &amp; data).</p>
+    
+    <div id="pubPetugasStatusBox" style="display:none;margin-bottom:16px;padding:12px;background:var(--sky);border:2px solid var(--blue);border-radius:12px;font-size:14px;color:var(--blue-dark)"></div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn green" id="btnPetugasLogin" style="font-size:17px;padding:12px" onclick="sbLoginModalOpen()">🔑 Login Petugas (Email + Password)</button>
+      <button class="btn" style="font-size:17px;padding:12px" onclick="goPage('beranda')">⚙️ Buka Dashboard Operasional Internal</button>
+      <button class="btn ghost small" onclick="goPage('pub-home')">⬅️ Kembali ke Portal Publik</button>
+    </div>
+  </div>
+</div>
 
 <main>
 <!-- ============ BERANDA ============ -->
@@ -654,7 +1589,31 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 </div>
 </main>
 
-<footer>✏️ SUPAT LIBRARY · Perpustakaan SDN Sukasari 4 Kota Tangerang · Dibuat dengan 💙</footer>
+<footer class="pub-footer">
+  <div class="pub-footer-wrap">
+    <div class="pub-footer-brand">
+      <h3>📚 SUPAT LIBRARY</h3>
+      <p>Perpustakaan Digital SDN Sukasari 4 Kota Tangerang</p>
+      <p style="font-size:12px;color:#7a99d6;margin-top:6px">Jl. Sukasari No. 4, Kota Tangerang, Banten · Akreditasi Sekolah A</p>
+    </div>
+    <div class="pub-footer-links">
+      <h4>Portal Publik</h4>
+      <a onclick="goPage('pub-home')">🏠 Beranda Publik</a>
+      <a onclick="goPage('pub-katalog')">📖 Katalog Buku</a>
+      <a onclick="goPage('pub-karya')">🎨 Karya Siswa</a>
+      <a onclick="goPage('pub-ebook')">📱 Rak E-Book</a>
+      <a onclick="goPage('pub-statistik')">📊 Statistik Sekolah</a>
+    </div>
+    <div class="pub-footer-links">
+      <h4>Akses Khusus</h4>
+      <a onclick="goPage('pub-akses')">🎫 Akses Saya (Siswa STU)</a>
+      <a onclick="goPage('pub-petugas')">🔐 Area Petugas (Supabase Auth)</a>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px dashed var(--line);font-size:12.5px;color:#6a89cc">
+    ✏️ SUPAT LIBRARY · Dibuat dengan 💙 untuk Ekosistem SDN Sukasari 4 Kota Tangerang
+  </div>
+</footer>
 
 <div id="toast"></div>
 
@@ -838,12 +1797,107 @@ function tickClock(){
 }
 setInterval(tickClock, 1000); tickClock();
 
-/* =================== TABS =================== */
-document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
-function goPage(p){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===p));
-  document.querySelectorAll('.page').forEach(pg=>pg.classList.toggle('active', pg.id==='page-'+p));
-  window.scrollTo({top:0, behavior:'smooth'});
+/* =================== TABS & PUBLIC ROUTING =================== */
+const PUB_PAGES = ['pub-home', 'pub-katalog', 'pub-karya', 'pub-ebook', 'pub-statistik', 'pub-akses', 'pub-petugas'];
+const INT_PAGES = ['beranda', 'anggota', 'katalog', 'sirkulasi', 'absensi', 'ebook', 'karya', 'statistik', 'data'];
+const PAGES = PUB_PAGES.concat(INT_PAGES);
+
+let currentPageIndex = 0;
+
+function renderNavMode(isPublic) {
+  const pubNav = $('pubNav');
+  const intNav = $('intNav');
+  if (pubNav && intNav) {
+    pubNav.style.display = isPublic ? 'flex' : 'none';
+    intNav.style.display = isPublic ? 'none' : 'flex';
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => goPage(b.dataset.page)));
+
+function goPage(p) {
+  if (!p) return;
+
+  const isPublic = p.startsWith('pub-');
+  // Internal page guard: jika belum login sebagai petugas & Supabase aktif, tampilkan modal login
+  if (!isPublic && window.LibraryAPI && LibraryAPI.configured && !SB_USER) {
+    sbLoginModalOpen();
+    return;
+  }
+
+  const idx = PAGES.indexOf(p);
+  if (idx !== -1) currentPageIndex = idx;
+  
+  renderNavMode(isPublic);
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const isActive = b.dataset.page === p;
+    b.classList.toggle('active', isActive);
+    if (isActive) {
+      b.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  });
+
+  document.querySelectorAll('.page').forEach(pg => pg.classList.toggle('active', pg.id === 'page-' + p));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Touch Horizontal Swipe Handler */
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  if (e.touches.length > 1) return;
+  const t = e.target;
+  if (t.closest('input, select, textarea, .table-wrap, .ac-list, .modal-bg, video, iframe, canvas')) return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!touchStartX) return;
+  const touch = e.changedTouches[0];
+  const deltaX = touchStartX - touch.clientX;
+  const deltaY = touchStartY - touch.clientY;
+  touchStartX = 0;
+  touchStartY = 0;
+  
+  if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+    const currentList = PAGES[currentPageIndex]?.startsWith('pub-') ? PUB_PAGES : INT_PAGES;
+    const subIdx = currentList.indexOf(PAGES[currentPageIndex]);
+    if (deltaX > 0) {
+      if (subIdx !== -1 && subIdx < currentList.length - 1) {
+        goPage(currentList[subIdx + 1]);
+      }
+    } else {
+      if (subIdx > 0) {
+        goPage(currentList[subIdx - 1]);
+      }
+    }
+  }
+}, { passive: true });
+
+/* =================== STUDENT STU ACCESS UI STATES =================== */
+function setStuUiState(state) {
+  const states = ['initial', 'scanning', 'loading', 'notfound', 'success'];
+  states.forEach(s => {
+    const el = $('stuState' + s.charAt(0).toUpperCase() + s.slice(1));
+    if (el) el.style.display = (s === state) ? 'block' : 'none';
+  });
+}
+
+function sbLoginModalOpen() {
+  if (SB_USER) {
+    goPage('beranda');
+  } else {
+    const authEl = $('sbAuth');
+    if (authEl) {
+      if ($('sbErr')) $('sbErr').textContent = '';
+      authEl.style.display = 'flex';
+    } else {
+      goPage('beranda');
+    }
+  }
 }
 
 /* =================== MEMBERS =================== */
@@ -1798,20 +2852,104 @@ function printQR(){
   $('qr-print-area').style.display = 'none';
 }
 
-/* =================== THUMBNAIL =================== */
+/* =================== THUMBNAIL & LOGO CLEANUP =================== */
+function removeBlackBackground(img){
+  try{
+    const w = img.naturalWidth || img.width || 512;
+    const h = img.naturalHeight || img.height || 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
+    
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const getLuma = (r, g, b) => r * 0.299 + g * 0.587 + b * 0.114;
+    const isDark = (r, g, b) => getLuma(r, g, b) < 65;
+    
+    const visited = new Uint8Array(w * h);
+    const queue = [];
+    
+    // Seed queue with border pixels
+    for (let x = 0; x < w; x++) {
+      [x, (h - 1) * w + x].forEach(pos => {
+        if (!visited[pos]) {
+          const idx = pos * 4;
+          if (isDark(data[idx], data[idx + 1], data[idx + 2])) {
+            visited[pos] = 1; queue.push(pos);
+          }
+        }
+      });
+    }
+    for (let y = 0; y < h; y++) {
+      [y * w, y * w + (w - 1)].forEach(pos => {
+        if (!visited[pos]) {
+          const idx = pos * 4;
+          if (isDark(data[idx], data[idx + 1], data[idx + 2])) {
+            visited[pos] = 1; queue.push(pos);
+          }
+        }
+      });
+    }
+    
+    let head = 0;
+    while (head < queue.length) {
+      const pos = queue[head++];
+      const idx = pos * 4;
+      
+      const luma = getLuma(data[idx], data[idx + 1], data[idx + 2]);
+      if (luma < 35) {
+        data[idx + 3] = 0; // Pure dark = fully transparent
+      } else {
+        const alphaFactor = (luma - 35) / 30; // Smooth anti-aliased edge transition
+        data[idx + 3] = Math.floor(data[idx + 3] * Math.max(0, Math.min(1, alphaFactor)));
+      }
+      
+      const x = pos % w;
+      const y = Math.floor(pos / w);
+      
+      const neighbors = [
+        x > 0 ? pos - 1 : -1,
+        x < w - 1 ? pos + 1 : -1,
+        y > 0 ? pos - w : -1,
+        y < h - 1 ? pos + w : -1
+      ];
+      
+      for (let i = 0; i < 4; i++) {
+        const nPos = neighbors[i];
+        if (nPos >= 0 && !visited[nPos]) {
+          const nIdx = nPos * 4;
+          if (isDark(data[nIdx], data[nIdx + 1], data[nIdx + 2])) {
+            visited[nPos] = 1;
+            queue.push(nPos);
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL('image/png');
+  }catch(e){
+    return img.src;
+  }
+}
+
 function uploadThumb(){
   const f = $('thumbFile').files[0];
   if(!f){ toast('⚠️ Pilih file gambar dulu'); return; }
   const reader = new FileReader();
   reader.onload = e=>{
-    // compress via canvas
     const img = new Image();
     img.onload = ()=>{
       const c = document.createElement('canvas');
-      const s = Math.min(1, 256/Math.max(img.width, img.height));
+      const s = Math.min(1, 512/Math.max(img.width, img.height));
       c.width = img.width*s; c.height = img.height*s;
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      DB.settings.thumb = c.toDataURL('image/jpeg', .85);
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      DB.settings.thumb = c.toDataURL('image/png');
       saveDB(); applyThumb();
       toast('🖼️ Foto terpasang!');
     };
@@ -1822,7 +2960,22 @@ function uploadThumb(){
 function removeThumb(){ DB.settings.thumb=''; saveDB(); applyThumb(); toast('🗑️ Foto dihapus'); }
 function applyThumb(){
   const t = DB.settings.thumb;
-  $('logoBox').innerHTML = t ? `<img src="${t}" alt="logo">` : '📚';
+  const box = $('logoBox');
+  if(!box) return;
+  if(!t){
+    box.innerHTML = '📚';
+  } else {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const cleaned = removeBlackBackground(img);
+      box.innerHTML = `<img src="${cleaned}" alt="logo">`;
+    };
+    img.onerror = () => {
+      box.innerHTML = `<img src="${t}" alt="logo">`;
+    };
+    img.src = t;
+  }
   let link = document.querySelector("link[rel='icon']");
   if(!link){ link = document.createElement('link'); link.rel='icon'; document.head.appendChild(link); }
   link.href = t || 'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>');
@@ -1875,19 +3028,47 @@ function sbStatus(state, detail){
   el.textContent = s[1] + (detail ? ' — ' + detail : '');
   el.style.display = 'block';
 }
+let SB_USER = null;
+
+function renderPetugasPageUI(user) {
+  const box = $('pubPetugasStatusBox');
+  const btnLogin = $('btnPetugasLogin');
+  if (user) {
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = `✅ Terautentikasi sebagai <b>${esc(user.email)}</b>`;
+    }
+    if (btnLogin) btnLogin.style.display = 'none';
+  } else {
+    if (box) box.style.display = 'none';
+    if (btnLogin) btnLogin.style.display = 'block';
+  }
+}
+
 function sbSetAuthUI(user){
-  const ov = $('sbAuth'); if(ov) ov.style.display = user ? 'none' : 'flex';
+  SB_USER = user;
+  if(user && $('sbAuth')) $('sbAuth').style.display = 'none';
   const bar = $('sbBar'); if(bar) bar.style.display = user ? 'flex' : 'none';
   const who = $('sbWho'); if(who) who.textContent = user ? ('👤 '+user.email) : '';
   sbStatus(user ? 'ready' : 'connected', user ? user.email : '');
+  renderPetugasPageUI(user);
 }
 async function sbLogin(){
   const email = $('sbEmail').value.trim(), pw = $('sbPass').value;
   $('sbErr').textContent = '';
-  try{ await LibraryAPI.signIn(email, pw); }
+  try{
+    await LibraryAPI.signIn(email, pw);
+    if($('sbAuth')) $('sbAuth').style.display = 'none';
+    goPage('beranda');
+  }
   catch(e){ $('sbErr').textContent = LibraryAPI.msg(e); }
 }
-async function sbLogout(){ try{ await LibraryAPI.signOut(); }catch(e){} location.reload(); }
+async function sbLogout(){
+  try{ await LibraryAPI.signOut(); }catch(e){}
+  SB_USER = null;
+  sbSetAuthUI(null);
+  goPage('pub-home');
+}
 async function sbMigrate(){
   // Preview jumlah data lokal SEBELUM upload — migrasi tidak boleh tak sengaja.
   const c = LibraryAPI.previewCounts(DB);
@@ -1921,6 +3102,219 @@ async function sbMigrate(){
     await sbLoadAll();
   }catch(e){ alert('❌ Migrasi gagal total:\n\n'+LibraryAPI.msg(e)); toast('❌ Migrasi gagal'); }
 }
+/* =================== PUBLIC PORTAL (ANON — tanpa login) =================== */
+/* Publik TIDAK PERNAH pullMembers(). Katalog/stat via endpoint anon-safe; STU via RPC lookup 1 siswa. */
+const PUB = { books: [], loaded: false, student: null, scan: null };
+let PUB_LIMIT = 60;
+
+async function pubBoot(){
+  if(!(window.LibraryAPI && LibraryAPI.enabled)){ pubStatsError(); pubCatalogError(); return; }
+  // Statistik agregat (RPC public_stats) — browser tak menerima PII, hanya angka.
+  try{
+    const s = await LibraryAPI.stats();
+    // Landing page stats
+    if($('pubStatMembers')) $('pubStatMembers').textContent = (s.total_anggota ?? '—');
+    if($('pubStatBooks'))   $('pubStatBooks').textContent   = (s.total_judul ?? '—');
+    if($('pubStatLoans'))   $('pubStatLoans').textContent   = (s.sedang_dipinjam ?? '—');
+    // #pubStatKarya: belum ada endpoint publik karya; jujur tampilkan '—'
+    if($('pubStatKarya')){ $('pubStatKarya').textContent = '—'; $('pubStatKarya').title = 'Data segera hadir'; }
+    // Halaman statistik lengkap
+    if($('pubStFullAnggota'))   $('pubStFullAnggota').textContent   = (s.total_anggota ?? '—');
+    if($('pubStFullJudul'))     $('pubStFullJudul').textContent     = (s.total_judul ?? '—');
+    if($('pubStFullEksemplar')) $('pubStFullEksemplar').textContent = (s.total_eksemplar ?? '—') + ' eksemplar total';
+    if($('pubStFullDipinjam'))  $('pubStFullDipinjam').textContent  = (s.sedang_dipinjam ?? '—');
+    if($('pubStFullTransaksi')) $('pubStFullTransaksi').textContent = (s.total_transaksi ?? '—');
+    // Bar chart sederhana (dipinjam vs total)
+    const maxBar = Math.max(s.total_transaksi || 1, s.sedang_dipinjam || 0);
+    const pctD = maxBar > 0 ? Math.round((s.sedang_dipinjam||0) / maxBar * 100) : 0;
+    const pctT = 100;
+    setTimeout(()=>{
+      if($('pubBarDipinjam'))     $('pubBarDipinjam').style.width = pctD + '%';
+      if($('pubBarDipinjamLbl'))  $('pubBarDipinjamLbl').textContent = (s.sedang_dipinjam||0) + ' buku';
+      if($('pubBarTransaksi'))    $('pubBarTransaksi').style.width = pctT + '%';
+      if($('pubBarTransaksiLbl')) $('pubBarTransaksiLbl').textContent = (s.total_transaksi||0) + ' transaksi';
+    }, 200);
+  }catch(e){ console.error('pub stats', e); pubStatsError(); }
+  // Popular books (anon-safe RPC, top 7)
+  try{
+    const pop = await LibraryAPI.popular(7);
+    const g = $('pubPopularBooksGrid');
+    if(g){
+      if(pop && pop.length){
+        g.innerHTML = pop.map((b,i)=>`<div class="pub-book-card">
+          <div class="book-cover" style="font-size:20px;font-weight:900;background:${i===0?'#ffd43b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--sky)'}">
+            ${i===0?'🥇':i===1?'🥈':i===2?'🥉':'📖'}
+          </div>
+          <div class="book-details">
+            <h4>${esc(b.judul)}</h4>
+            <p>Kode: ${esc(b.kode)}</p>
+            <span class="cat-pill">${b.dipinjam} kali dipinjam</span>
+          </div></div>`).join('');
+      } else {
+        g.innerHTML = '<div style="text-align:center;padding:20px;color:#4a6bb5">Belum ada data transaksi yang cukup.</div>';
+      }
+    }
+  }catch(e){ console.error('pub popular', e); const g=$('pubPopularBooksGrid'); if(g) g.innerHTML='<div style="color:#c0392b;padding:16px">⚠️ Gagal memuat data buku terfavorit.</div>'; }
+  // Katalog publik (anon, paginasi penuh >1000 baris via _pullAll)
+  try{
+    PUB.books = await LibraryAPI.publicBooks();
+    PUB.loaded = true;
+    pubBuildCategories();
+    renderPubCatalog();
+    renderPubHomePreview();
+  }catch(e){ pubCatalogError(e); }
+  // Pulihkan sesi siswa (sessionStorage, bukan localStorage permanen) — hanya siswa ini
+  try{ const raw = sessionStorage.getItem('stuSession'); if(raw){ PUB.student = JSON.parse(raw); renderStudentArea(PUB.student); setStuUiState('success'); } }catch(e){}
+}
+function pubStatsError(){ ['pubStatMembers','pubStatBooks','pubStatLoans','pubStatKarya'].forEach(id=>{ const el=$(id); if(el) el.textContent='—'; }); }
+function pubCatalogError(e){
+  if(e) console.error('pub catalog', e);
+  const g=$('pubBookListGrid'); if(g) g.innerHTML='<div style="grid-column:1/-1;padding:24px;text-align:center;color:#c0392b">⚠️ Gagal memuat katalog dari server. Periksa koneksi lalu muat ulang.</div>';
+  const b=$('pubBookCountBadge'); if(b) b.textContent='—';
+}
+function pubBuildCategories(){
+  const sel=$('pubBookCatSelect'); if(!sel) return;
+  // Normalisasi lowercase karena data nyata campur: 'fiksi', 'FIKSI', 'komik', 'referensi'
+  const raw = [...new Set(PUB.books.map(b=>(b.kategori||'').trim().toLowerCase()).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Semua Kategori</option>'+raw.map(c=>`<option value="${esc(c)}">${esc(c.charAt(0).toUpperCase()+c.slice(1))}</option>`).join('');
+}
+function pubBookCard(b){
+  const ada=(b.tersedia||0)>0;
+  return `<div class="pub-book-card"><div class="book-cover">📖</div><div class="book-details">
+    <span class="badge ${ada?'b-green':'b-orange'}">${ada?'Tersedia':'Sedang Dipinjam'}</span>
+    <h4>${esc(b.judul)}</h4>
+    <p>${b.pengarang?esc(b.pengarang)+' · ':''}Kode: ${esc(b.kode)}${b.kategori?' · '+esc(b.kategori):''}${b.tahun?' · '+esc(b.tahun):''}</p>
+  </div></div>`;
+}
+function renderPubCatalog(){
+  const grid=$('pubBookListGrid'); if(!grid) return;
+  if(!PUB.loaded){ return; }
+  const q=($('pubBookSearchInput')&&$('pubBookSearchInput').value||'').toLowerCase().trim();
+  const cat=($('pubBookCatSelect')&&$('pubBookCatSelect').value)||'';
+  const rows=PUB.books.filter(b=>
+    (!q || (b.judul||'').toLowerCase().includes(q) || (b.pengarang||'').toLowerCase().includes(q) || String(b.kode||'').toLowerCase().includes(q))
+    && (!cat || (b.kategori||'').trim().toLowerCase() === cat.toLowerCase()));
+  const badge=$('pubBookCountBadge'); if(badge) badge.textContent=rows.length+' Buku';
+  const shown=rows.slice(0,PUB_LIMIT);
+  grid.innerHTML = (shown.map(pubBookCard).join('')
+    + (rows.length>PUB_LIMIT ? `<div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn ghost" onclick="PUB_LIMIT+=60;renderPubCatalog()">⬇️ Tampilkan lebih (${rows.length-PUB_LIMIT} lagi)</button></div>` : ''))
+    || '<div style="grid-column:1/-1;padding:24px;text-align:center;color:#4a6bb5">Tidak ada buku yang cocok.</div>';
+}
+function renderPubHomePreview(){
+  const g=$('pubBookPreviewGrid'); if(g) g.innerHTML=PUB.books.slice(0,6).map(pubBookCard).join('') || '';
+  const k=$('pubKaryaPreviewGrid'); if(k) k.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
+  const kf=$('pubKaryaFullGrid'); if(kf) kf.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
+  const eb=$('pubEbookGrid'); if(eb) eb.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book segera hadir.</div>';
+  // Pasang event listeners search+filter (sekali saja, flag agar tidak duplikat)
+  const si=$('pubBookSearchInput');
+  if(si && !si._ev){ si._ev=1; si.addEventListener('input', ()=>{ PUB_LIMIT=60; renderPubCatalog(); }); }
+  const cs=$('pubBookCatSelect');
+  if(cs && !cs._ev){ cs._ev=1; cs.addEventListener('change', ()=>{ PUB_LIMIT=60; renderPubCatalog(); }); }
+}
+
+/* ---- STUDENT STU ACCESS ---- */
+// Format kartu NYATA = barcode_id dari sistem RFID pusat sekolah.
+// Data saat ini: numerik 10-12 digit (mis. 126010800042). Belum ada yang ber-prefix STU-.
+// Terima keduanya: STU-XXXXXXXX (format dokumentasi/legacy) ATAU numerik 10+ digit (kartu nyata).
+// Validasi server = otoritatif; client-side hanya filter obvious noise.
+function stuNormalizeKey(raw){ return String(raw||'').trim().toUpperCase().replace(/\s+/g,''); }
+function stuValidFormat(k){
+  // Numerik 10+ digit (format kartu sekolah nyata: min 10, max 12)
+  if(/^[0-9]{10,}$/.test(k)) return true;
+  // Format STU-XXXXXXXX (prefix dokumen/legacy, belum dipakai di data aktual)
+  if(/^STU-[0-9A-Z]{4,}$/.test(k)) return true;
+  return false;
+}
+async function stuHandleKey(raw){
+  const key = stuNormalizeKey(raw);
+  if(!stuValidFormat(key)){ toast('⚠️ Format tidak dikenali. Masukkan nomor kartu sekolah (mis: 126010800001) atau scan QR pada kartu.'); setStuUiState('initial'); return; }
+  stuScanStop();
+  setStuUiState('loading');
+  if(!(window.LibraryAPI && LibraryAPI.enabled)){ toast('⚠️ Database online belum siap.'); setStuUiState('notfound'); return; }
+  try{
+    const res = await LibraryAPI.studentLookup(key);
+    if(res && res.found){
+      PUB.student = res;
+      try{ sessionStorage.setItem('stuSession', JSON.stringify(res)); }catch(e){}
+      renderStudentArea(res); setStuUiState('success');
+    } else { setStuUiState('notfound'); }
+  }catch(e){ console.error('stu lookup', e); setStuUiState('notfound'); }
+}
+function stuManualSubmit(){ stuHandleKey($('stuInputManual') ? $('stuInputManual').value : ''); }
+async function stuScanStart(){
+  setStuUiState('scanning');
+  if(typeof jsQR==='undefined'){ toast('⚠️ Scanner belum termuat. Gunakan input manual.'); setStuUiState('initial'); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast('📷 Browser tak mendukung kamera. Gunakan input manual.'); setStuUiState('initial'); return; }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    const video=document.createElement('video'); video.setAttribute('playsinline','');
+    const canvas=document.createElement('canvas');
+    PUB.scan={ stream, raf:null, video, canvas };
+    video.srcObject=stream; await video.play();
+    const vp=document.querySelector('#stuStateScanning .scan-viewport');
+    if(vp){ video.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px'; vp.style.position='relative'; vp.insertBefore(video, vp.firstChild); }
+    const tick=()=>{
+      if(!PUB.scan) return;
+      if(video.readyState===video.HAVE_ENOUGH_DATA){
+        const c=PUB.scan.canvas; c.width=video.videoWidth; c.height=video.videoHeight;
+        const ctx=c.getContext('2d'); ctx.drawImage(video,0,0,c.width,c.height);
+        const img=ctx.getImageData(0,0,c.width,c.height);
+        const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+        if(code && code.data){ stuHandleKey(code.data); return; }
+      }
+      PUB.scan.raf=requestAnimationFrame(tick);
+    };
+    PUB.scan.raf=requestAnimationFrame(tick);
+  }catch(e){
+    console.error('camera', e);
+    toast('📷 Kamera tidak dapat diakses / ditolak. Gunakan input manual di bawah.');
+    setStuUiState('initial');
+  }
+}
+function stuScanStop(){
+  if(!PUB.scan) return;
+  try{ cancelAnimationFrame(PUB.scan.raf); }catch(e){}
+  try{ PUB.scan.stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+  const v=PUB.scan.video; if(v && v.parentNode) v.parentNode.removeChild(v);
+  PUB.scan=null;
+}
+function stuLogout(){
+  stuScanStop(); PUB.student=null;
+  try{ sessionStorage.removeItem('stuSession'); }catch(e){}
+  const i=$('stuInputManual'); if(i) i.value='';
+  setStuUiState('initial');
+}
+function renderStudentArea(d){
+  const box=$('stuStateSuccess'); if(!box || !d) return;
+  const loans=(d.loans||[]);
+  const active=loans.filter(l=>!l.kembali);
+  const lifeBadge = d.lifecycle==='AKTIF' ? 'b-green' : 'b-gray';
+  const activeHtml = active.length ? active.map(l=>{
+    const overdue = todayStr() > (l.batas||'');
+    return `<div class="pub-book-card" style="margin:10px 0"><div class="book-cover">📖</div><div class="book-details">
+      <span class="badge ${overdue?'b-red':'b-orange'}">${overdue?'⏰ Terlambat':'Sedang Dipinjam'}</span>
+      <h4>${esc(l.judul||'-')}</h4>
+      <p>Tgl Pinjam: <b>${fmtDate(l.pinjam)}</b> · Batas Kembali: <b>${fmtDate(l.batas)}</b></p>
+    </div></div>`;
+  }).join('') : '<p style="text-align:center;color:#4a6bb5;padding:14px">Belum ada buku yang sedang kamu pinjam 📚</p>';
+  box.innerHTML = `
+    <div style="background:var(--sky);border:2px solid var(--blue);border-radius:16px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:36px">🧑‍🎓</div>
+        <div>
+          <span class="badge ${lifeBadge}">${esc(d.status||'-')} · ${esc(d.lifecycle||'-')}</span>
+          <h3 style="color:var(--blue-dark);margin:2px 0">${esc(d.nama||'-')}</h3>
+          <p style="font-size:13px;color:#4a6bb5">Kelas ${esc(d.kelas||'-')}${d.rombel?' '+esc(d.rombel):''}</p>
+        </div>
+      </div>
+    </div>
+    <h3>📖 Peminjaman Aktif Saya</h3>
+    ${activeHtml}
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn ghost small" onclick="stuLogout()">🚪 Keluar Akses Saya</button>
+    </div>`;
+}
+
 (async function init(){
   await loadDB();
   $('gsCode').textContent = APPS_SCRIPT;
@@ -1931,6 +3325,7 @@ async function sbMigrate(){
   setupAC('aNama','aNamaList','aId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   setupAC('kNama','kNamaList','kMemberId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   renderAll();
+  goPage('pub-home');
   // Tentukan & tampilkan status DB online secara eksplisit (A–E).
   if(!LibraryAPI.configured){
     sbStatus('unconfigured');            // A: anon key masih placeholder → mode lokal
@@ -1939,19 +3334,20 @@ async function sbMigrate(){
     sbStatus('failed','library supabase-js gagal dimuat (periksa koneksi internet)');
   } else {
     try{
-      await LibraryAPI.ping();           // C: cek koneksi tanpa login (deteksi anon key salah / offline)
+      await LibraryAPI.ping();           // C: cek koneksi anon (public_stats RPC)
       sbStatus('connected');
-      await sbBoot();                    // D/E: overlay login → data pusat
+      pubBoot();                         // Non-blocking: isi katalog & statistik publik tanpa tunggu auth
+      await sbBoot();                    // D/E: restore auth state (tanpa memaksa overlay login)
     }catch(e){
-      sbStatus('failed', LibraryAPI.msg(e));  // B: konfigurasi ada tapi koneksi gagal
-      if($('sbAuth')) $('sbAuth').style.display='flex';  // gate app; login akan beri pesan error jelas (jangan clobber status)
+      sbStatus('failed', LibraryAPI.msg(e));  // B: koneksi gagal
+      pubBoot();                         // Tetap coba pubBoot; pubCatalogError() akan tampilkan pesan jujur
     }
   }
 })();
 </script>
 
 <!-- ============ SUPABASE PETUGAS AUTH (fondasi akses) ============ -->
-<!-- Overlay login: tampil hanya bila Supabase dikonfigurasi DAN belum login. -->
+<!-- Overlay login: tampil hanya bila dipanggil secara eksplisit (Area Petugas / internal page without auth). -->
 <div id="sbAuth" style="display:none;position:fixed;inset:0;z-index:9999;background:#1B3B8F;align-items:center;justify-content:center;font-family:Nunito,system-ui,Arial">
   <div style="background:#fff;max-width:360px;width:90%;padding:26px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center">
     <div style="font-size:40px">📚</div>
@@ -1965,6 +3361,7 @@ async function sbMigrate(){
     <div id="sbErr" style="color:#c0392b;font-size:12px;min-height:16px;margin:4px 0"></div>
     <button onclick="sbLogin()"
       style="width:100%;padding:12px;background:#1B3B8F;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Masuk</button>
+    <button onclick="if($('sbAuth')) $('sbAuth').style.display='none'" style="margin-top:12px;background:none;border:none;color:#4a6bb5;font-size:12px;cursor:pointer;text-decoration:underline">⬅️ Batal / Kembali ke Portal Publik</button>
     <div style="font-size:11px;color:#94a3c4;margin-top:12px">Akun petugas dibuat di dashboard Supabase.</div>
   </div>
 </div>

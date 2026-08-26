@@ -92,9 +92,34 @@
     onAuth(cb) { return sb.auth.onAuthStateChange(function (_e, session) { cb(session ? session.user : null); }); },
 
     // ---------- pulls (fill legacy DB arrays) ----------
-    async pullMembers() { return throwIf(await sb.from('members').select('*').order('nama')).map(rowToMem); },
-    async pullBooks()   { return throwIf(await sb.from('books').select('*').order('judul')).map(rowToBook); },
-    async pullLoans()   { return throwIf(await sb.from('loans').select('*').order('created_at', { ascending: false })).map(rowToLoan); },
+    // PostgREST membatasi ~1000 row/response. Ambil per-halaman via .range() sampai batch < PAGE
+    // supaya SELURUH baris termuat (mis. books 1548). Ordering: kolom niat + 'id' (pk unik) sebagai
+    // tiebreaker → deterministik, tak ada baris terlewat/duplikat. Gagal 1 batch = throw (bukan parsial diam).
+    async _pullAll(table, orderCol, ascending) {
+      var PAGE = 1000, from = 0, all = [];
+      for (;;) {
+        var res = await sb.from(table).select('*')
+          .order(orderCol, { ascending: ascending !== false })
+          .order('id', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (res.error) throw res.error;
+        var batch = res.data || [];
+        all = all.concat(batch);
+        if (batch.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
+    },
+    async pullMembers() { return (await this._pullAll('members', 'nama', true)).map(rowToMem); },
+    async pullBooks()   { return (await this._pullAll('books', 'judul', true)).map(rowToBook); },
+    async pullLoans()   { return (await this._pullAll('loans', 'created_at', false)).map(rowToLoan); },
+
+    // ---------- PUBLIC (anon) ----------
+    // Catalog is public (RLS books_read_all). Paginated so ALL rows load, not capped at 1000.
+    async publicBooks() { return (await this._pullAll('books', 'judul', true)).map(rowToBook); },
+    // Secure single-student lookup by access key (= barcode_id). RPC is SECURITY DEFINER; anon never
+    // touches the members/loans tables directly. Returns {found:false} or one minimal profile + own loans.
+    async studentLookup(key) { return throwIf(await sb.rpc('student_lookup', { p_key: key })); },
 
     // ---------- members ----------
     async upsertMember(m) {
