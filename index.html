@@ -1864,6 +1864,7 @@ function setStuUiState(state) {
 
 function sbLoginModalOpen() {
   if (SB_USER) {
+    toast('✅ Anda sudah login sebagai ' + SB_USER.email);
     goPage('beranda');
   } else {
     const authEl = $('sbAuth');
@@ -1871,6 +1872,7 @@ function sbLoginModalOpen() {
       if ($('sbErr')) $('sbErr').textContent = '';
       authEl.style.display = 'flex';
     } else {
+      toast('ℹ️ Membuka Dashboard...');
       goPage('beranda');
     }
   }
@@ -3030,6 +3032,10 @@ function sbSetAuthUI(user){
   renderPetugasPageUI(user);
 }
 async function sbLogin(){
+  if (!window.LibraryAPI || !LibraryAPI.enabled) {
+    if ($('sbErr')) $('sbErr').textContent = '⚠️ Database online belum siap / belum dikonfigurasi.';
+    return;
+  }
   const email = $('sbEmail').value.trim(), pw = $('sbPass').value;
   $('sbErr').textContent = '';
   try{
@@ -3324,7 +3330,7 @@ function renderStudentArea(d){
 
 <!-- ============ SUPABASE PETUGAS AUTH (fondasi akses) ============ -->
 <!-- Overlay login: tampil hanya bila dipanggil secara eksplisit (Area Petugas / internal page without auth). -->
-<div id="sbAuth" style="display:none;position:fixed;inset:0;z-index:9999;background:#1B3B8F;align-items:center;justify-content:center;font-family:Nunito,system-ui,Arial">
+<div id="sbAuth" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;z-index:99999;background:rgba(27,59,143,0.95);backdrop-filter:blur(6px);align-items:center;justify-content:center;font-family:Nunito,system-ui,Arial">
   <div style="background:#fff;max-width:360px;width:90%;padding:26px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center">
     <div style="font-size:40px">📚</div>
     <h2 style="color:#1B3B8F;margin:6px 0 2px">SUPAT LIBRARY</h2>
