@@ -8,6 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<!-- Supabase backend (multi-device). Loads before the app so window.LibraryAPI is ready. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-layer.js"></script>
 <style>
 :root{
   --blue:#2B6CE6; --blue-dark:#1B3B8F; --blue-ink:#16306e;
@@ -290,9 +294,19 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div class="frow">
       <div><label>Nama Lengkap *</label><input id="mNama" placeholder="cth: BUDI SANTOSO"></div>
       <div><label>Kelas / Bagian</label><input id="mKelas" placeholder="cth: 5A / Guru / Tamu"></div>
+      <div><label>Rombel (opsional)</label><input id="mRombel" placeholder="cth: A"></div>
       <div><label>Jenis Kelamin</label><select id="mJk"><option value="L">L (Laki-laki)</option><option value="P">P (Perempuan)</option></select></div>
       <div><label>Tipe</label><select id="mTipe"><option>Siswa</option><option>Guru</option><option>Staf</option><option>Tamu</option></select></div>
+      <div><label>Status Siswa</label><select id="mLife"><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select></div>
       <div><label>No. Anggota (kosongkan jika non-anggota)</label><input id="mNo" placeholder="cth: 25010900031"></div>
+      <div><label>NIS (opsional)</label><input id="mNis" placeholder="cth: 12345"></div>
+      <div><label>NISN (opsional)</label><input id="mNisn" placeholder="cth: 0012345678"></div>
+      <div><label>Barcode ID (permanen, lintas aplikasi)</label>
+        <div style="display:flex;gap:6px">
+          <input id="mBarcode" placeholder="otomatis saat disimpan" style="flex:1">
+          <button type="button" class="btn small ghost" onclick="fillBarcode()" title="Buat barcode acak">🎲 Generate</button>
+        </div>
+      </div>
     </div>
     <button class="btn" id="mSaveBtn" onclick="saveMember()">💾 Simpan</button>
     <button class="btn ghost" onclick="resetMemberForm()">🧹 Bersihkan</button>
@@ -302,12 +316,13 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <h2>👧 Daftar Anggota &amp; Non-Anggota <span id="mCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
     <div class="search-bar">
-      <input id="mSearch" placeholder="🔍 Cari nama / no anggota...">
+      <input id="mSearch" placeholder="🔍 Cari nama / no anggota / barcode...">
       <select id="mFilterKelas"><option value="">Semua Kelas</option></select>
       <select id="mFilterStatus"><option value="">Semua Status</option><option>Anggota</option><option>Non-Anggota</option></select>
+      <select id="mFilterLife"><option value="">Semua Siswa</option><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>JK</th><th>Tipe</th><th>No Anggota</th><th>Status</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>JK</th><th>Tipe</th><th>No Anggota</th><th>Barcode</th><th>Status</th><th>Siswa</th><th>Aksi</th></tr></thead>
       <tbody id="memberTable"></tbody>
     </table></div>
     <div style="margin-top:8px"><button class="btn small ghost" id="mMoreBtn" onclick="memberLimit+=50;renderMembers()">Tampilkan lebih banyak ⬇️</button></div>
@@ -390,6 +405,11 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 
 <!-- ============ ABSENSI ============ -->
 <div class="page" id="page-absensi">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn" id="absTabKunjungan" onclick="absTab('kunjungan')">📚 Kunjungan Perpustakaan</button>
+    <button class="btn ghost" id="absTabSiswa" onclick="absTab('siswa')">👨‍🎓 Absensi Siswa</button>
+  </div>
+  <div id="abs-kunjungan">
   <div class="grid2">
     <div class="card">
       <h2>🖐️ Absensi Kunjungan <span style="font-size:14px"><span class="live-dot"></span>REAL-TIME</span></h2>
@@ -428,6 +448,52 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </table></div>
     <div style="margin-top:8px"><button class="btn small ghost" id="aMoreBtn" onclick="visitLimit+=50;renderVisits()">Tampilkan lebih banyak ⬇️</button></div>
   </div>
+  </div><!-- /abs-kunjungan -->
+
+  <div id="abs-siswa" style="display:none">
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+        <div style="flex:1;min-width:160px"><label>Tanggal Absensi</label><input type="date" id="asTgl"></div>
+        <button class="btn small" id="asModeKelasBtn" onclick="asSetMode('kelas')">👥 Mode Kelas</button>
+        <button class="btn small ghost" id="asModeKameraBtn" onclick="asSetMode('kamera')">📷 Mode Kamera</button>
+      </div>
+    </div>
+
+    <div class="card alt" id="asKelasPanel">
+      <h2>👥 Mode Kelas</h2>
+      <p class="subtitle">Pilih kelas → tandai status tiap siswa aktif → simpan.</p>
+      <label>Pilih Kelas</label>
+      <select id="asKelas" onchange="renderClassAttendance()"><option value="">— pilih kelas —</option></select>
+      <div id="asKelasList" style="margin-top:10px"></div>
+      <button class="btn green" id="asSaveKelasBtn" onclick="saveClassAttendance()" style="display:none;margin-top:10px">✅ Simpan Absensi Kelas</button>
+    </div>
+
+    <div class="card alt" id="asKameraPanel" style="display:none">
+      <h2>📷 Mode Kamera</h2>
+      <p class="subtitle">Arahkan kamera ke QR siswa (berisi barcodeId). Status tercatat: <b>Hadir</b>.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn green" id="asCamStart" onclick="startScan()">▶️ Mulai Kamera</button>
+        <button class="btn red" id="asCamStop" onclick="stopScan()" style="display:none">⏹️ Stop</button>
+      </div>
+      <video id="asVideo" playsinline muted style="width:100%;max-width:360px;border-radius:12px;display:none;margin-top:10px;background:#000"></video>
+      <canvas id="asCanvas" style="display:none"></canvas>
+      <div id="asScanResult" class="hint" style="margin-top:10px">Kamera belum aktif.</div>
+    </div>
+
+    <div class="card">
+      <h2>🗂️ Riwayat Absensi Siswa</h2>
+      <div class="squiggle"></div>
+      <div class="search-bar">
+        <input id="asSearch" placeholder="🔍 Cari nama / barcode...">
+        <input type="date" id="asFilterTgl">
+        <button class="btn small ghost" onclick="document.getElementById('asFilterTgl').value='';renderAttendanceHistory()">Reset Tanggal</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama</th><th>Kelas</th><th>Barcode</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="asTable"></tbody>
+      </table></div>
+    </div>
+  </div><!-- /abs-siswa -->
 </div>
 
 <!-- ============ EBOOK ============ -->
@@ -552,6 +618,16 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <button class="btn small yellow" onclick="copyScript()">📋 Salin Kode Apps Script</button>
       <code class="block" id="gsCode"></code>
     </div>
+
+    <div class="card">
+      <h2>🎓 Tahun Ajaran &amp; Kenaikan Kelas</h2>
+      <p class="subtitle">Naikkan kelas semua siswa aktif sekaligus. Barcode &amp; identitas siswa tetap — hanya kelas &amp; status yang berubah.</p>
+      <label>Tahun Ajaran Aktif</label>
+      <input id="taInput" placeholder="cth: 2026/2027">
+      <button class="btn small ghost" onclick="saveTahunAjaran()">💾 Simpan Tahun Ajaran</button>
+      <div style="margin-top:12px"><button class="btn yellow" onclick="promoteYear()">⬆️ Proses Kenaikan Kelas</button></div>
+      <div class="hint">Kelas 1→2, 2→3, … 5→6, dan <b>kelas 6 → LULUS</b> (masuk arsip, data tidak dihapus). Huruf rombel dipertahankan (mis. 5A→6A). Cadangan JSON otomatis diunduh sebelum proses.</div>
+    </div>
   </div>
 
   <div class="grid2">
@@ -654,9 +730,9 @@ function freshDB(){
   const seed = buildSeed();
   return {
     members: seed.members, books: seed.books,
-    loans: seed.loans, visits: seed.visits, ebooks: [], karya: [],
-    settings: { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'' },
-    seq: { m: seed.members.length+1, b: seed.books.length+1, l: seed.loans.length+1, v: seed.visits.length+1, e: 1, k: 1 },
+    loans: seed.loans, visits: seed.visits, ebooks: [], karya: [], attendance: [],
+    settings: { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'', tahunAjaran:'' },
+    seq: { m: seed.members.length+1, b: seed.books.length+1, l: seed.loans.length+1, v: seed.visits.length+1, e: 1, k: 1, as: 1 },
     dataVer: 3
   };
 }
@@ -690,7 +766,35 @@ async function loadDB(){
   if(!DB.seq) DB.seq = { m: DB.members.length+1, b: DB.books.length+1, l: DB.loans.length+1, v: DB.visits.length+1 };
   if(!DB.seq.e) DB.seq.e = DB.ebooks.length+1;
   if(!DB.seq.k) DB.seq.k = DB.karya.length+1;
+  if(DB.settings.tahunAjaran===undefined) DB.settings.tahunAjaran = '';
+  if(!DB.attendance) DB.attendance = [];
+  if(!DB.seq.as) DB.seq.as = DB.attendance.length+1;
+  // backfill lifecycle/barcode fields (additive & idempotent — never wipes existing data)
+  let backfilled = false;
+  DB.members.forEach(m=>{
+    // barcode_id TIDAK digenerate — berasal dari sistem RFID pusat, diinput manual.
+    if(!m.lifecycle){ m.lifecycle = 'AKTIF'; backfilled = true; }
+    if(m.rombel===undefined){ m.rombel = ''; backfilled = true; }
+    if(m.nis===undefined){ m.nis = ''; backfilled = true; }
+    if(m.nisn===undefined){ m.nisn = ''; backfilled = true; }
+    if(m.tahunAjaran===undefined){ m.tahunAjaran = DB.settings.tahunAjaran||''; backfilled = true; }
+  });
+  if(backfilled) saveDB();
 }
+
+/* =================== BARCODE IDENTITY =================== */
+/* barcodeId = identitas siswa permanen lintas aplikasi. Format: STU-XXXXXXXX (8 hex).
+   Stabil: tidak berubah karena kelas/rombel/tahun ajaran/kelulusan. */
+function randHex(n){
+  let s = '';
+  if(window.crypto && crypto.getRandomValues){
+    const a = new Uint8Array(Math.ceil(n/2)); crypto.getRandomValues(a);
+    a.forEach(b=>{ s += b.toString(16).padStart(2,'0'); });
+  } else { while(s.length < n) s += Math.floor(Math.random()*16).toString(16); }
+  return s.slice(0,n).toUpperCase();
+}
+function barcodeExists(bc, exceptId){ return DB.members.some(m=>m.barcodeId===bc && m.id!==exceptId); }
+function genBarcode(){ let bc; do{ bc = 'STU-'+randHex(8); } while(barcodeExists(bc)); return bc; }
 
 /* file blobs stored under separate keys agar tidak melebihi batas penyimpanan */
 async function fileSet(key, dataUrl){
@@ -744,81 +848,145 @@ function goPage(p){
 
 /* =================== MEMBERS =================== */
 let memberLimit = 50;
-function saveMember(){
+function fillBarcode(){ toast('ℹ️ Barcode ID diinput manual dari kartu RFID sekolah — tidak dibuat otomatis.'); }
+async function saveMember(){
   const nama = $('mNama').value.trim().toUpperCase();
   if(!nama){ toast('⚠️ Nama wajib diisi!'); return; }
   const id = $('mId').value;
   const no = $('mNo').value.trim();
-  const data = { nama, kelas: $('mKelas').value.trim().toUpperCase(), jk: $('mJk').value,
-    tipe: $('mTipe').value, noAnggota: no, status: no ? 'Anggota' : 'Non-Anggota' };
+  // Barcode ID = dari sistem RFID pusat sekolah, diinput/paste MANUAL. eLibrary tidak generate.
+  const barcodeId = $('mBarcode').value.trim().toUpperCase();
+  if(!barcodeId){ toast('⚠️ Barcode ID wajib — scan/paste dari kartu RFID sekolah.'); return; }
+  if(barcodeExists(barcodeId, id)){ toast('⚠️ Barcode ID sudah digunakan anggota lain.'); return; }
+  const data = { nama, kelas: $('mKelas').value.trim().toUpperCase(), rombel: $('mRombel').value.trim().toUpperCase(),
+    jk: $('mJk').value, tipe: $('mTipe').value, noAnggota: no, nis: $('mNis').value.trim(), nisn: $('mNisn').value.trim(),
+    barcodeId, lifecycle: $('mLife').value, status: no ? 'Anggota' : 'Non-Anggota' };
   if(id){
-    const m = DB.members.find(x=>x.id===id); Object.assign(m, data);
-    toast('✅ Data '+nama+' diperbarui');
+    const m = DB.members.find(x=>x.id===id);
+    data.id = id;
+    data.tahunAjaran = (m && m.tahunAjaran) || DB.settings.tahunAjaran || '';
   } else {
     if(DB.members.some(x=>x.nama===nama && x.kelas===data.kelas)){ toast('⚠️ Nama & kelas ini sudah terdaftar'); return; }
-    data.id = 'M'+String(DB.seq.m++).padStart(4,'0');
-    DB.members.push(data);
-    toast('✅ '+nama+' berhasil ditambahkan sebagai '+data.status);
+    data.tahunAjaran = DB.settings.tahunAjaran || '';
+  }
+  if(SB_ENABLED){
+    try{
+      const saved = await LibraryAPI.upsertMember(data);
+      if(id){ const m = DB.members.find(x=>x.id===id); if(m) Object.assign(m, saved); }
+      else DB.members.unshift(saved);
+      toast(id ? '✅ Data '+nama+' diperbarui' : '✅ '+nama+' ditambahkan');
+    }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
+  } else {
+    if(id){ const m = DB.members.find(x=>x.id===id); Object.assign(m, data); toast('✅ Data '+nama+' diperbarui'); }
+    else { data.id = 'M'+String(DB.seq.m++).padStart(4,'0'); DB.members.push(data); toast('✅ '+nama+' ditambahkan · barcode '+barcodeId); }
   }
   saveDB(); resetMemberForm(); renderMembers(); renderDashboard();
 }
 function editMember(id){
   const m = DB.members.find(x=>x.id===id); if(!m) return;
   $('mId').value = m.id; $('mNama').value = m.nama; $('mKelas').value = m.kelas;
-  $('mJk').value = m.jk||'L'; $('mTipe').value = m.tipe||'Siswa'; $('mNo').value = m.noAnggota||'';
+  $('mRombel').value = m.rombel||''; $('mJk').value = m.jk||'L'; $('mTipe').value = m.tipe||'Siswa';
+  $('mLife').value = m.lifecycle||'AKTIF'; $('mNo').value = m.noAnggota||'';
+  $('mNis').value = m.nis||''; $('mNisn').value = m.nisn||''; $('mBarcode').value = m.barcodeId||'';
   $('mSaveBtn').textContent = '💾 Simpan Perubahan';
   goPage('anggota'); $('mNama').focus();
 }
-function delMember(id){
+async function delMember(id){
   const m = DB.members.find(x=>x.id===id);
   if(!confirm('Hapus data "'+m.nama+'"?')) return;
+  if(SB_ENABLED){ try{ await LibraryAPI.deleteMember(id); }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; } }
   DB.members = DB.members.filter(x=>x.id!==id);
   saveDB(); renderMembers(); renderDashboard(); toast('🗑️ Data dihapus');
 }
-function resetMemberForm(){ ['mId','mNama','mKelas','mNo'].forEach(i=>$(i).value=''); $('mJk').value='L'; $('mTipe').value='Siswa'; $('mSaveBtn').textContent='💾 Simpan'; }
+function resetMemberForm(){ ['mId','mNama','mKelas','mRombel','mNo','mNis','mNisn','mBarcode'].forEach(i=>$(i).value=''); $('mJk').value='L'; $('mTipe').value='Siswa'; $('mLife').value='AKTIF'; $('mSaveBtn').textContent='💾 Simpan'; }
+/* Cetak kartu siswa + QR barcode. Barcode SELALU dari barcodeId tersimpan (tak pernah generate saat print). */
+function printCard(id){
+  const m = DB.members.find(x=>x.id===id); if(!m) return;
+  if(!m.barcodeId){ toast('⚠️ Anggota belum punya Barcode ID (dari RFID). Isi dulu lewat Ubah.'); return; }
+  const tmp = document.createElement('div'); tmp.style.display='none'; document.body.appendChild(tmp);
+  new QRCode(tmp, { text:m.barcodeId, width:180, height:180, colorDark:'#1B3B8F', colorLight:'#ffffff' });
+  setTimeout(()=>{
+    const img = tmp.querySelector('img'), cv = tmp.querySelector('canvas');
+    const src = (img && img.getAttribute('src')) ? img.src : (cv ? cv.toDataURL('image/png') : '');
+    tmp.remove();
+    const kelas = esc(m.kelas||'') + (m.rombel ? ' '+esc(m.rombel) : '');
+    const w = window.open('', '_blank', 'width=420,height=640');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Kartu ${esc(m.nama)}</title>
+      <style>body{font-family:system-ui,Arial;margin:0;padding:20px;display:flex;justify-content:center}
+      .card{width:320px;border:2px solid #1B3B8F;border-radius:16px;padding:18px;text-align:center}
+      .card h3{margin:0;color:#1B3B8F;font-size:16px}.card .sub{font-size:11px;color:#4a6bb5;margin-bottom:10px}
+      .card table{width:100%;font-size:13px;text-align:left;margin:10px 0}.card td{padding:2px 0}
+      .card img{margin:8px 0}.bc{font-family:monospace;font-weight:700;letter-spacing:1px;font-size:14px;color:#1B3B8F}
+      @media print{@page{margin:8mm}}</style></head><body onload="window.print()">
+      <div class="card">
+        <h3>SUPAT LIBRARY</h3><div class="sub">Perpustakaan SDN Sukasari 4 Kota Tangerang</div>
+        <table>
+          <tr><td>Nama</td><td>: <b>${esc(m.nama)}</b></td></tr>
+          <tr><td>Kelas</td><td>: ${kelas||'-'}</td></tr>
+          <tr><td>No. Anggota</td><td>: ${esc(m.noAnggota||'-')}</td></tr>
+        </table>
+        ${src?`<img src="${src}" width="180" height="180" alt="barcode">`:''}
+        <div class="bc">${esc(m.barcodeId)}</div>
+      </div></body></html>`);
+    w.document.close();
+  }, 80);
+}
 function renderMembers(){
   const q = $('mSearch').value.toLowerCase();
-  const fk = $('mFilterKelas').value, fs = $('mFilterStatus').value;
+  const fk = $('mFilterKelas').value, fs = $('mFilterStatus').value, fl = $('mFilterLife').value;
   let rows = DB.members.filter(m =>
-    (!q || m.nama.toLowerCase().includes(q) || (m.noAnggota||'').toLowerCase().includes(q)) &&
-    (!fk || m.kelas===fk) && (!fs || m.status===fs));
+    (!q || m.nama.toLowerCase().includes(q) || (m.noAnggota||'').toLowerCase().includes(q) || (m.barcodeId||'').toLowerCase().includes(q)) &&
+    (!fk || m.kelas===fk) && (!fs || m.status===fs) && (!fl || (m.lifecycle||'AKTIF')===fl));
   $('mCount').textContent = rows.length + ' orang';
   const shown = rows.slice(0, memberLimit);
+  const lifeBadge = { AKTIF:'b-green', LULUS:'b-blue', PINDAH:'b-orange', NONAKTIF:'b-gray' };
   $('memberTable').innerHTML = shown.map((m,i)=>`<tr>
-    <td>${i+1}</td><td><b>${esc(m.nama)}</b></td><td>${esc(m.kelas)}</td><td>${esc(m.jk)}</td><td>${esc(m.tipe||'Siswa')}</td>
+    <td>${i+1}</td><td><b>${esc(m.nama)}</b></td><td>${esc(m.kelas)}${m.rombel?' <small style="color:#4a6bb5">'+esc(m.rombel)+'</small>':''}</td><td>${esc(m.jk)}</td><td>${esc(m.tipe||'Siswa')}</td>
     <td>${esc(m.noAnggota)||'<i style="color:#999">-</i>'}</td>
+    <td><code style="font-size:11px">${esc(m.barcodeId||'-')}</code></td>
     <td><span class="badge ${m.status==='Anggota'?'b-green':'b-gray'}">${m.status}</span></td>
-    <td><button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button>
+    <td><span class="badge ${lifeBadge[m.lifecycle||'AKTIF']||'b-gray'}">${esc(m.lifecycle||'AKTIF')}</span></td>
+    <td><button class="icon-btn" onclick="printCard('${m.id}')" title="Cetak Kartu + Barcode">🖨️</button>
+        <button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button>
         <button class="icon-btn" onclick="delMember('${m.id}')" title="Hapus">🗑️</button></td></tr>`).join('')
-    || '<tr><td colspan="8" style="text-align:center;padding:20px">Belum ada data. Tambahkan di formulir atas ⬆️</td></tr>';
+    || '<tr><td colspan="10" style="text-align:center;padding:20px">Belum ada data. Tambahkan di formulir atas ⬆️</td></tr>';
   $('mMoreBtn').style.display = rows.length > memberLimit ? '' : 'none';
   // kelas filter options
   const kelasSet = [...new Set(DB.members.map(m=>m.kelas).filter(Boolean))].sort();
   const cur = $('mFilterKelas').value;
   $('mFilterKelas').innerHTML = '<option value="">Semua Kelas</option>' + kelasSet.map(k=>`<option ${k===cur?'selected':''}>${esc(k)}</option>`).join('');
 }
-['mSearch','mFilterKelas','mFilterStatus'].forEach(i=>$(i).addEventListener('input',()=>{memberLimit=50;renderMembers();}));
+['mSearch','mFilterKelas','mFilterStatus','mFilterLife'].forEach(i=>$(i).addEventListener('input',()=>{memberLimit=50;renderMembers();}));
 
 /* =================== BOOKS =================== */
 let bookLimit = 50;
-function saveBook(){
+async function saveBook(){
   const kode = $('bKode').value.trim(), judul = $('bJudul').value.trim().toUpperCase();
   if(!kode || !judul){ toast('⚠️ Kode dan judul buku wajib diisi!'); return; }
   const id = $('bId').value;
   const jumlah = Math.max(1, parseInt($('bJumlah').value)||1);
+  let data;
   if(id){
     const b = DB.books.find(x=>x.id===id);
     const borrowed = b.jumlah - b.tersedia;
-    Object.assign(b, { kode, judul, pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
-      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia: Math.max(0, jumlah - borrowed) });
-    toast('✅ Buku diperbarui');
+    data = { id, kode, judul, pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
+      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia: Math.max(0, jumlah - borrowed) };
   } else {
-    if(DB.books.some(x=>x.kode===kode)){ toast('⚠️ Kode buku ini sudah ada di katalog'); return; }
-    DB.books.push({ id:'B'+String(DB.seq.b++).padStart(4,'0'), kode, judul,
-      pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
-      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia:jumlah });
-    toast('✅ Buku "'+judul+'" masuk katalog');
+    if(!SB_ENABLED && DB.books.some(x=>x.kode===kode)){ toast('⚠️ Kode buku ini sudah ada di katalog'); return; }
+    data = { kode, judul, pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
+      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia:jumlah };
   }
+  if(SB_ENABLED){
+    try{
+      const saved = await LibraryAPI.upsertBook(data);
+      if(id){ const b = DB.books.find(x=>x.id===id); if(b) Object.assign(b, saved); }
+      else DB.books.unshift(saved);
+    }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
+  } else {
+    if(id){ const b = DB.books.find(x=>x.id===id); Object.assign(b, data); }
+    else { data.id = 'B'+String(DB.seq.b++).padStart(4,'0'); DB.books.push(data); }
+  }
+  toast(id ? '✅ Buku diperbarui' : '✅ Buku "'+judul+'" masuk katalog');
   saveDB(); resetBookForm(); renderBooks(); renderDashboard();
 }
 function editBook(id){
@@ -827,9 +995,10 @@ function editBook(id){
   $('bPenerbit').value=b.penerbit||''; $('bTahun').value=b.tahun||''; $('bKategori').value=b.kategori||''; $('bJumlah').value=b.jumlah||1;
   $('bSaveBtn').textContent='💾 Simpan Perubahan'; goPage('katalog'); $('bKode').focus();
 }
-function delBook(id){
+async function delBook(id){
   const b = DB.books.find(x=>x.id===id);
   if(!confirm('Hapus buku "'+b.judul+'" dari katalog?')) return;
+  if(SB_ENABLED){ try{ await LibraryAPI.deleteBook(id); }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; } }
   DB.books = DB.books.filter(x=>x.id!==id);
   saveDB(); renderBooks(); renderDashboard(); toast('🗑️ Buku dihapus');
 }
@@ -883,21 +1052,31 @@ function statusBadge(st){
   if(st==='TEPAT WAKTU') return '<span class="badge b-green">✅ TEPAT WAKTU</span>';
   return '<span class="badge b-orange">⚠️ TERLAMBAT</span>';
 }
-function saveLoan(){
+async function saveLoan(){
   const mid = $('lPeminjamId').value, bid = $('lBukuId').value;
   if(!mid){ toast('⚠️ Pilih peminjam dari daftar yang muncul'); return; }
   if(!bid){ toast('⚠️ Pilih buku dari daftar yang muncul'); return; }
   const m = DB.members.find(x=>x.id===mid), b = DB.books.find(x=>x.id===bid);
-  if(b.tersedia <= 0){ toast('⚠️ Semua eksemplar "'+b.judul+'" sedang dipinjam!'); return; }
+  if(!m || !b){ toast('⚠️ Data tidak ditemukan — muat ulang halaman.'); return; }
   const tgl = $('lTgl').value || todayStr();
-  const loan = {
-    id:'L'+String(DB.seq.l++).padStart(5,'0'),
-    memberId:m.id, nama:m.nama, kelas:m.kelas, jk:m.jk, noAnggota:m.noAnggota||'-',
-    bookId:b.id, kode:b.kode, judul:b.judul,
-    pinjam:tgl, batas:addDays(tgl,3), kembali:'', sanksi:''
-  };
-  DB.loans.unshift(loan);
-  b.tersedia--;
+  let loan;
+  if(SB_ENABLED){
+    // Atomik di server (borrow_book). Guard stok ada di DB, bukan di JS ini.
+    try{ loan = await LibraryAPI.borrow(b.id, m.id, tgl); }
+    catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
+    DB.loans.unshift(loan);
+    b.tersedia = Math.max(0, b.tersedia - 1);   // optimistik; realtime akan menyelaraskan
+  } else {
+    if(b.tersedia <= 0){ toast('⚠️ Semua eksemplar "'+b.judul+'" sedang dipinjam!'); return; }
+    loan = {
+      id:'L'+String(DB.seq.l++).padStart(5,'0'),
+      memberId:m.id, nama:m.nama, kelas:m.kelas, jk:m.jk, noAnggota:m.noAnggota||'-',
+      bookId:b.id, kode:b.kode, judul:b.judul,
+      pinjam:tgl, batas:addDays(tgl,3), kembali:'', sanksi:''
+    };
+    DB.loans.unshift(loan);
+    b.tersedia--;
+  }
   // auto-catat kunjungan aktivitas meminjam
   const now = new Date();
   DB.visits.unshift({ id:'V'+String(DB.seq.v++).padStart(5,'0'), memberId:m.id, nama:m.nama, kelas:m.kelas,
@@ -908,18 +1087,24 @@ function saveLoan(){
   showStruk(loan);
   toast('✅ Peminjaman tercatat!');
 }
-function returnLoan(id){
+async function returnLoan(id){
   const l = DB.loans.find(x=>x.id===id); if(!l || l.kembali) return;
-  l.kembali = todayStr();
+  if(SB_ENABLED){
+    try{ const upd = await LibraryAPI.returnLoan(id); Object.assign(l, upd); }
+    catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
+  } else {
+    l.kembali = todayStr();
+  }
   const b = DB.books.find(x=>x.id===l.bookId);
   if(b) b.tersedia = Math.min(b.jumlah, b.tersedia+1);
   const st = loanStatus(l);
   saveDB(); renderLoans(); renderActiveLoans(); renderBooks(); renderDashboard();
   toast(st==='TEPAT WAKTU' ? '✅ Buku dikembalikan tepat waktu!' : '⚠️ Buku dikembalikan TERLAMBAT');
 }
-function delLoan(id){
+async function delLoan(id){
   const l = DB.loans.find(x=>x.id===id);
   if(!confirm('Hapus catatan peminjaman "'+l.judul+'" oleh '+l.nama+'?')) return;
+  if(SB_ENABLED){ try{ await LibraryAPI.deleteLoan(id); }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; } }
   if(!l.kembali){ const b = DB.books.find(x=>x.id===l.bookId); if(b) b.tersedia = Math.min(b.jumlah, b.tersedia+1); }
   DB.loans = DB.loans.filter(x=>x.id!==id);
   saveDB(); renderLoans(); renderActiveLoans(); renderBooks(); renderDashboard(); toast('🗑️ Catatan dihapus');
@@ -1035,6 +1220,126 @@ function renderVisits(){
   $('aMoreBtn').style.display = rows.length > visitLimit ? '' : 'none';
 }
 ['aSearch','aFilterTgl'].forEach(i=>$(i).addEventListener('input',()=>{visitLimit=50;renderVisits();}));
+
+/* =================== ABSENSI SISWA =================== */
+/* Terpisah dari Absensi Kunjungan (DB.visits) agar tidak mencemari statistik pengunjung.
+   Simpan di DB.attendance. Duplicate rule: 1 record per siswa per tanggal (upsert). */
+const ATT_STATUS = ['Hadir','Sakit','Izin','Alpa'];
+function asActiveStudents(){ return DB.members.filter(m=>(m.tipe||'Siswa')==='Siswa' && (m.lifecycle||'AKTIF')==='AKTIF'); }
+function upsertAttendance(m, status, tgl){
+  const now = new Date(), jam = pad(now.getHours())+':'+pad(now.getMinutes());
+  let rec = DB.attendance.find(a=>a.studentId===m.id && a.tgl===tgl);
+  if(rec){ rec.status=status; rec.jam=jam; rec.barcodeId=m.barcodeId||''; rec.nama=m.nama; rec.kelas=m.kelas; rec.rombel=m.rombel||''; return false; }
+  DB.attendance.unshift({ id:'AS'+String(DB.seq.as++).padStart(5,'0'), studentId:m.id, barcodeId:m.barcodeId||'',
+    nama:m.nama, kelas:m.kelas, rombel:m.rombel||'', tgl, status, jam, ket:'' });
+  return true;
+}
+function absTab(which){
+  const k = which==='kunjungan';
+  $('abs-kunjungan').style.display = k?'':'none';
+  $('abs-siswa').style.display = k?'none':'';
+  $('absTabKunjungan').className = 'btn'+(k?'':' ghost');
+  $('absTabSiswa').className = 'btn'+(k?' ghost':'');
+  if(k){ stopScan(); }
+  else { if(!$('asTgl').value) $('asTgl').value = todayStr(); asSetMode('kelas'); renderAttendanceHistory(); }
+}
+function asSetMode(mode){
+  const kelas = mode==='kelas';
+  $('asKelasPanel').style.display = kelas?'':'none';
+  $('asKameraPanel').style.display = kelas?'none':'';
+  $('asModeKelasBtn').className = 'btn small'+(kelas?'':' ghost');
+  $('asModeKameraBtn').className = 'btn small'+(kelas?' ghost':'');
+  if(kelas){ stopScan(); populateClassOptions(); renderClassAttendance(); }
+}
+function populateClassOptions(){
+  const set = [...new Set(asActiveStudents().map(m=>m.kelas).filter(Boolean))].sort();
+  const cur = $('asKelas').value;
+  $('asKelas').innerHTML = '<option value="">— pilih kelas —</option>' + set.map(k=>`<option ${k===cur?'selected':''}>${esc(k)}</option>`).join('');
+}
+function renderClassAttendance(){
+  const kelas = $('asKelas').value, tgl = $('asTgl').value||todayStr();
+  if(!kelas){ $('asKelasList').innerHTML=''; $('asSaveKelasBtn').style.display='none'; return; }
+  const list = asActiveStudents().filter(m=>m.kelas===kelas).sort((a,b)=>a.nama.localeCompare(b.nama));
+  $('asKelasList').innerHTML = list.map(m=>{
+    const rec = DB.attendance.find(a=>a.studentId===m.id && a.tgl===tgl);
+    const cur = rec ? rec.status : 'Hadir';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #eef1f8">
+      <b style="flex:1">${esc(m.nama)}</b>
+      <select data-sid="${m.id}" class="as-status">${ATT_STATUS.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('')}</select>
+    </div>`;
+  }).join('') || '<p style="padding:10px;text-align:center">Tidak ada siswa aktif di kelas ini.</p>';
+  $('asSaveKelasBtn').style.display = list.length ? '' : 'none';
+}
+function saveClassAttendance(){
+  const tgl = $('asTgl').value||todayStr();
+  const sels = document.querySelectorAll('#asKelasList .as-status');
+  if(!sels.length){ toast('⚠️ Pilih kelas dulu'); return; }
+  let baru=0, upd=0;
+  sels.forEach(sel=>{ const m=DB.members.find(x=>x.id===sel.dataset.sid); if(m){ upsertAttendance(m, sel.value, tgl) ? baru++ : upd++; } });
+  saveDB(); renderAttendanceHistory();
+  toast('✅ Absensi kelas tersimpan: '+baru+' baru, '+upd+' diperbarui');
+}
+/* --- Mode Kamera (jsQR) --- */
+let asStream=null, asScanning=false, lastScan={code:'',t:0};
+function startScan(){
+  if(typeof jsQR==='undefined'){ $('asScanResult').innerHTML='❌ Library scanner belum termuat. Butuh internet saat pertama membuka aplikasi.'; return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('asScanResult').textContent='❌ Perangkat/browser ini tidak mendukung kamera.'; return; }
+  const v = $('asVideo');
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } }).then(s=>{
+    asStream=s; v.srcObject=s; v.play();
+    v.style.display=''; $('asCamStart').style.display='none'; $('asCamStop').style.display='';
+    asScanning=true; $('asScanResult').textContent='📷 Arahkan ke QR barcode siswa…';
+    requestAnimationFrame(scanLoop);
+  }).catch(e=>{ $('asScanResult').textContent='❌ Kamera tidak dapat diakses: '+e.message; });
+}
+function stopScan(){
+  asScanning=false;
+  if(asStream){ asStream.getTracks().forEach(t=>t.stop()); asStream=null; }
+  const v=$('asVideo'); if(v){ v.style.display='none'; }
+  if($('asCamStart')){ $('asCamStart').style.display=''; $('asCamStop').style.display='none'; }
+}
+function scanLoop(){
+  if(!asScanning) return;
+  const v=$('asVideo'), cv=$('asCanvas');
+  if(v.readyState===v.HAVE_ENOUGH_DATA){
+    cv.width=v.videoWidth; cv.height=v.videoHeight;
+    const ctx=cv.getContext('2d'); ctx.drawImage(v,0,0,cv.width,cv.height);
+    const img=ctx.getImageData(0,0,cv.width,cv.height);
+    const code=jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
+    if(code && code.data) handleScan(code.data.trim());
+  }
+  requestAnimationFrame(scanLoop);
+}
+/* lookup pakai nilai barcodeId aktual (tidak asumsikan awalan STU-). Tak pernah buat siswa baru. */
+function handleScan(bc){
+  const now=Date.now();
+  if(bc===lastScan.code && now-lastScan.t<2500) return; // debounce QR yang sama
+  lastScan={ code:bc, t:now };
+  const m = DB.members.find(x=>x.barcodeId===bc);
+  if(!m){ $('asScanResult').innerHTML='⚠️ <b>Siswa tidak ditemukan</b><br><code>'+esc(bc)+'</code>'; return; }
+  const tgl = $('asTgl').value||todayStr();
+  const isNew = upsertAttendance(m, 'Hadir', tgl);
+  saveDB(); renderAttendanceHistory();
+  $('asScanResult').innerHTML = '✓ <b>Hadir</b> — '+esc(m.nama)+'<br>Kelas '+esc(m.kelas||'-')+' · <code>'+esc(bc)+'</code>'+(isNew?'':' <i>(sudah tercatat, diperbarui)</i>');
+}
+function delAttendance(id){
+  if(!confirm('Hapus catatan absensi siswa ini?')) return;
+  DB.attendance = DB.attendance.filter(a=>a.id!==id);
+  saveDB(); renderAttendanceHistory(); renderClassAttendance();
+  toast('🗑️ Dihapus');
+}
+function renderAttendanceHistory(){
+  const q=($('asSearch').value||'').toLowerCase(), ft=$('asFilterTgl').value;
+  const rows = DB.attendance.filter(a=>(!q||a.nama.toLowerCase().includes(q)||(a.barcodeId||'').toLowerCase().includes(q)) && (!ft||a.tgl===ft));
+  const badge={ Hadir:'b-green', Sakit:'b-orange', Izin:'b-blue', Alpa:'b-red' };
+  $('asTable').innerHTML = rows.slice(0,200).map(a=>`<tr>
+    <td>${fmtDate(a.tgl)}</td><td>${a.jam||'-'}</td><td><b>${esc(a.nama)}</b></td><td>${esc(a.kelas)||'-'}</td>
+    <td><code style="font-size:11px">${esc(a.barcodeId||'-')}</code></td>
+    <td><span class="badge ${badge[a.status]||'b-gray'}">${esc(a.status)}</span></td>
+    <td><button class="icon-btn" onclick="delAttendance('${a.id}')">🗑️</button></td></tr>`).join('')
+    || '<tr><td colspan="7" style="text-align:center;padding:20px">Belum ada absensi siswa.</td></tr>';
+}
+['asSearch','asFilterTgl'].forEach(i=>$(i).addEventListener('input',()=>renderAttendanceHistory()));
 
 /* =================== DASHBOARD =================== */
 function renderDashboard(){
@@ -1281,25 +1586,33 @@ async function renderKarya(){
 $('eSearch').addEventListener('input', renderEbooks);
 
 /* =================== EXPORT / IMPORT =================== */
-function memberRows(){ return DB.members.map((m,i)=>({ NO:i+1, NAMA:m.nama, KELAS:m.kelas, 'JENIS KELAMIN':m.jk, TIPE:m.tipe||'Siswa', 'NO ANGGOTA':m.noAnggota||'', STATUS:m.status })); }
+function isArchived(m){ return ['LULUS','PINDAH','NONAKTIF'].includes(m.lifecycle||'AKTIF'); }
+function memberRowObj(m,i){ return { NO:i+1, STUDENT_ID:m.id, BARCODE_ID:m.barcodeId||'', NAMA:m.nama, KELAS:m.kelas, ROMBEL:m.rombel||'',
+  'JENIS KELAMIN':m.jk, TIPE:m.tipe||'Siswa', NIS:m.nis||'', NISN:m.nisn||'', 'NO ANGGOTA':m.noAnggota||'',
+  'TAHUN AJARAN':m.tahunAjaran||'', STATUS:m.status, 'STATUS SISWA':m.lifecycle||'AKTIF' }; }
+function memberRows(){ return DB.members.filter(m=>!isArchived(m)).map((m,i)=>memberRowObj(m,i)); }
+function archiveRows(){ return DB.members.filter(isArchived).map((m,i)=>memberRowObj(m,i)); }
 function bookRows(){ return DB.books.map((b,i)=>({ NO:i+1, 'KODE BUKU':b.kode, 'JUDUL BUKU':b.judul, PENGARANG:b.pengarang||'', PENERBIT:b.penerbit||'', TAHUN:b.tahun||'', KATEGORI:b.kategori||'', JUMLAH:b.jumlah, TERSEDIA:b.tersedia })); }
-function loanRows(){ return DB.loans.map(l=>({ NAMA:l.nama, KELAS:l.kelas, 'JENIS KELAMIN':l.jk||'', 'NO ANGGOTA':l.noAnggota, 'KODE BUKU':l.kode, 'JUDUL BUKU':l.judul, PINJAM:l.pinjam, 'BATAS KEMBALI':l.batas, DIKEMBALIKAN:l.kembali||'', STATUS:loanStatus(l).replace('-AKTIF',''), SANKSI:l.sanksi||'-' })); }
+function loanRows(){ return DB.loans.map(l=>{ const m=DB.members.find(x=>x.id===l.memberId)||{}; return { STUDENT_ID:l.memberId||'', BARCODE_ID:m.barcodeId||'', NAMA:l.nama, KELAS:l.kelas, 'JENIS KELAMIN':l.jk||'', 'NO ANGGOTA':l.noAnggota, 'KODE BUKU':l.kode, 'JUDUL BUKU':l.judul, PINJAM:l.pinjam, 'BATAS KEMBALI':l.batas, DIKEMBALIKAN:l.kembali||'', STATUS:loanStatus(l).replace('-AKTIF',''), SANKSI:l.sanksi||'-' }; }); }
 function karyaRows(){ return DB.karya.map(k=>({ TANGGAL:k.tgl, NAMA:k.nama, KELAS:k.kelas||'', JENIS:k.jenis, 'JUDUL KARYA':k.judul, ISI:k.isi||'', SUKA:k.suka||0 })); }
 function ebookRows(){ return DB.ebooks.map(e=>({ JUDUL:e.judul, PENGARANG:e.pengarang||'', KATEGORI:e.kategori||'', SUMBER:e.mode==='link'?(e.url||''):('File: '+(e.fileName||'')), 'DIBACA (x)':e.dibaca||0 })); }
-function visitRows(){ return DB.visits.map(v=>({ NAMA:v.nama, KELAS:v.kelas, TIPE:v.tipe||'', 'NO ANGGOTA':(DB.members.find(m=>m.id===v.memberId)||{}).noAnggota||'', TANGGAL:v.tgl, JAM:v.jam||'-', AKTIVITAS:v.aktivitas, 'JUDUL BUKU':v.buku||'', KETERANGAN:v.ket||'' })); }
+function visitRows(){ return DB.visits.map(v=>{ const m=DB.members.find(x=>x.id===v.memberId)||{}; return { STUDENT_ID:v.memberId||'', BARCODE_ID:m.barcodeId||'', NAMA:v.nama, KELAS:v.kelas, TIPE:v.tipe||'', 'NO ANGGOTA':m.noAnggota||'', TANGGAL:v.tgl, JAM:v.jam||'-', AKTIVITAS:v.aktivitas, 'JUDUL BUKU':v.buku||'', KETERANGAN:v.ket||'' }; }); }
+function attendanceRows(){ return DB.attendance.map(a=>({ STUDENT_ID:a.studentId, BARCODE_ID:a.barcodeId||'', NAMA:a.nama, KELAS:a.kelas, ROMBEL:a.rombel||'', TANGGAL:a.tgl, JAM:a.jam||'', STATUS:a.status, KETERANGAN:a.ket||'' })); }
 function exportAll(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(memberRows()), 'ANGGOTA');
+  { const ar = archiveRows(); if(ar.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ar), 'ARSIP_SISWA'); }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bookRows()), 'KATALOG');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(loanRows()), 'PEMINJAMAN');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(visitRows()), 'ABSENSI');
+  { const at = attendanceRows(); if(at.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(at), 'ABSENSI_SISWA'); }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(karyaRows()), 'KARYA');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ebookRows()), 'EBOOK');
   XLSX.writeFile(wb, 'SUPAT_LIBRARY_'+todayStr()+'.xlsx');
   toast('📤 Data berhasil diekspor!');
 }
 const TEMPLATES = {
-  anggota: [{ NAMA:'CONTOH NAMA SISWA', KELAS:'5A', 'JENIS KELAMIN':'L', TIPE:'Siswa', 'NO ANGGOTA':'25010900001' }],
+  anggota: [{ NAMA:'CONTOH NAMA SISWA', KELAS:'5', ROMBEL:'A', 'JENIS KELAMIN':'L', TIPE:'Siswa', NIS:'', NISN:'', 'NO ANGGOTA':'25010900001', BARCODE_ID:'', 'STATUS SISWA':'AKTIF', 'TAHUN AJARAN':'2026/2027' }],
   katalog: [{ 'KODE BUKU':'20260101001', 'JUDUL BUKU':'CONTOH JUDUL BUKU', PENGARANG:'Nama Pengarang', PENERBIT:'Nama Penerbit', TAHUN:'2026', KATEGORI:'Fiksi', JUMLAH:1 }],
   peminjaman: [{ NAMA:'CONTOH NAMA', KELAS:'5A', 'JENIS KELAMIN':'L', 'NO ANGGOTA':'25010900001', 'KODE BUKU':'20260101001', 'JUDUL BUKU':'CONTOH JUDUL', PINJAM:'2026-07-01', 'BATAS KEMBALI':'2026-07-04', DIKEMBALIKAN:'2026-07-03' }],
   absensi: [{ NAMA:'CONTOH NAMA', KELAS:'5A', TANGGAL:'2026-07-01', JAM:'09:30', AKTIVITAS:'Membaca', 'JUDUL BUKU':'', KETERANGAN:'' }]
@@ -1335,8 +1648,12 @@ function importData(){
           const kelas = g('KELAS').toUpperCase();
           if(DB.members.some(m=>m.nama===nama && m.kelas===kelas)){ skipped++; return; }
           const no = g('NO ANGGOTA');
-          DB.members.push({ id:'M'+String(DB.seq.m++).padStart(4,'0'), nama, kelas, jk:g('JENIS KELAMIN')||'L',
-            tipe:g('TIPE')||'Siswa', noAnggota:no, status: no?'Anggota':'Non-Anggota' }); added++;
+          // Barcode ID dari RFID pusat. Tidak digenerate: pakai kolom, kosong dibiarkan, duplikat dilewati.
+          const bc = g('BARCODE_ID').toUpperCase(); if(bc && barcodeExists(bc)){ skipped++; return; }
+          DB.members.push({ id:'M'+String(DB.seq.m++).padStart(4,'0'), nama, kelas, rombel:g('ROMBEL').toUpperCase(),
+            jk:g('JENIS KELAMIN')||'L', tipe:g('TIPE')||'Siswa', nis:g('NIS'), nisn:g('NISN'), noAnggota:no,
+            barcodeId:bc, lifecycle:(g('STATUS SISWA').toUpperCase()||'AKTIF'), tahunAjaran:g('TAHUN AJARAN')||DB.settings.tahunAjaran||'',
+            status: no?'Anggota':'Non-Anggota' }); added++;
         } else if(type==='katalog'){
           const kode = g('KODE BUKU'), judul = g('JUDUL BUKU').toUpperCase(); if(!judul) return;
           if(kode && DB.books.some(b=>String(b.kode)===kode)){ skipped++; return; }
@@ -1372,8 +1689,9 @@ function importData(){
 const APPS_SCRIPT = `function doPost(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var data = JSON.parse(e.postData.contents);
-  var sheets = ['ANGGOTA','KATALOG','PEMINJAMAN','ABSENSI','KARYA','EBOOK'];
+  var sheets = ['ANGGOTA','ARSIP_SISWA','KATALOG','PEMINJAMAN','ABSENSI','ABSENSI_SISWA','KARYA','EBOOK'];
   sheets.forEach(function(name){
+    if (!data.hasOwnProperty(name)) return; // jangan sentuh sheet yang tak dikirim (lindungi data lama)
     var rows = data[name] || [];
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     sh.clearContents();
@@ -1400,12 +1718,42 @@ function saveSettings(){
   DB.settings.qrUrl = $('qrUrl').value.trim();
   saveDB();
 }
+function saveTahunAjaran(){
+  DB.settings.tahunAjaran = $('taInput').value.trim();
+  saveDB(); toast('✅ Tahun ajaran: '+(DB.settings.tahunAjaran||'(kosong)'));
+}
+/* Unduh cadangan seluruh DB sebagai JSON — dipanggil sebelum operasi berisiko (kenaikan kelas). */
+function backupJSON(){
+  const blob = new Blob([JSON.stringify(DB)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'BACKUP_SUPAT_'+todayStr()+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+/* Kenaikan kelas: hanya siswa AKTIF bertipe Siswa. Kelas 6 → LULUS (arsip, tidak dihapus).
+   Barcode/studentId/histori TIDAK berubah. Rombel dipetakan lurus (5A→6A); pemetaan silang manual. */
+function promoteYear(){
+  if(!confirm('Proses kenaikan kelas untuk semua siswa AKTIF?\nKelas 6 akan menjadi LULUS (arsip). Barcode & histori tetap.\nCadangan JSON akan diunduh dulu.')) return;
+  backupJSON();
+  let naik = 0, lulus = 0;
+  DB.members.forEach(m=>{
+    if((m.tipe||'Siswa')!=='Siswa') return;
+    if((m.lifecycle||'AKTIF')!=='AKTIF') return;
+    const g = /^(\d+)/.exec(m.kelas||'');
+    if(!g) return; // kelas non-numerik (Guru/Tamu/dll) dilewati
+    const grade = parseInt(g[1],10);
+    if(grade >= 6){ m.lifecycle = 'LULUS'; lulus++; }
+    else { m.kelas = m.kelas.replace(/^\d+/, String(grade+1)); naik++; }
+    m.tahunAjaran = DB.settings.tahunAjaran || m.tahunAjaran || '';
+  });
+  saveDB(); renderMembers(); renderDashboard();
+  toast('🎓 Kenaikan selesai: '+naik+' naik kelas, '+lulus+' LULUS (arsip). Cadangan JSON terunduh.');
+}
 async function syncNow(silent){
   saveSettings();
   const url = DB.settings.gsUrl;
   if(!url){ if(!silent) toast('⚠️ Isi dulu URL Apps Script di atas'); return; }
   $('gsStatus').textContent = '⏳ Mengirim data ke Google Spreadsheet...';
-  const payload = JSON.stringify({ ANGGOTA:memberRows(), KATALOG:bookRows(), PEMINJAMAN:loanRows(), ABSENSI:visitRows(), KARYA:karyaRows(), EBOOK:ebookRows() });
+  const payload = JSON.stringify({ ANGGOTA:memberRows(), ARSIP_SISWA:archiveRows(), KATALOG:bookRows(), PEMINJAMAN:loanRows(), ABSENSI:visitRows(), ABSENSI_SISWA:attendanceRows(), KARYA:karyaRows(), EBOOK:ebookRows() });
   try{
     await fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:payload });
     DB.settings.lastSync = todayStr()+' '+$('clockTime').textContent;
@@ -1484,9 +1832,94 @@ function applyThumb(){
 function renderAll(){
   renderMembers(); renderBooks(); renderLoans(); renderActiveLoans(); renderVisits(); renderDashboard(); renderStats(); renderEbooks(); renderKarya();
   $('gsUrl').value = DB.settings.gsUrl||''; $('gsAuto').checked = !!DB.settings.gsAuto;
+  $('taInput').value = DB.settings.tahunAjaran||'';
   $('qrUrl').value = DB.settings.qrUrl || (location.protocol.startsWith('http') ? location.href : '');
   if(DB.settings.lastSync) $('gsStatus').innerHTML = 'Sinkron terakhir: <b>'+DB.settings.lastSync+'</b>';
   applyThumb();
+}
+/* =================== SUPABASE BOOT / AUTH (petugas) =================== */
+async function sbBoot(){
+  LibraryAPI.onAuth(async (user)=>{ sbSetAuthUI(user); if(user) await sbLoadAll(); });
+  const user = await LibraryAPI.currentUser();
+  sbSetAuthUI(user);
+  if(user) await sbLoadAll();
+}
+async function sbLoadAll(){
+  try{
+    const [members, books, loans] = await Promise.all([
+      LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans() ]);
+    DB.members = members; DB.books = books; DB.loans = loans;
+    saveDB(); renderAll();
+    if(!window._sbSub){
+      window._sbSub = LibraryAPI.subscribe(async ()=>{
+        try{
+          DB.books = await LibraryAPI.pullBooks();
+          DB.loans = await LibraryAPI.pullLoans();
+          renderBooks(); renderActiveLoans(); renderLoans(); renderDashboard(); renderStats();
+        }catch(e){ console.error('realtime refresh', e); }
+      });
+    }
+  }catch(e){ toast('❌ Muat data pusat: '+LibraryAPI.msg(e)); }
+}
+// Status DB online yang JELAS — jangan sampai petugas mengira data online padahal lokal.
+function sbStatus(state, detail){
+  const el = $('sbStatus'); if(!el) return;
+  const map = {
+    unconfigured: ['#8792ac', '☁️ Database Online: Belum dikonfigurasi — mode LOKAL (data hanya di perangkat ini)'],
+    failed:       ['#c0392b', '⚠️ Database Online: Koneksi GAGAL — mode LOKAL'],
+    connected:    ['#1e874b', '🟢 Database Online: Terhubung · belum login'],
+    ready:        ['#1e874b', '🟢 Database Online: Terhubung']
+  };
+  const s = map[state] || map.unconfigured;
+  el.style.background = s[0];
+  el.textContent = s[1] + (detail ? ' — ' + detail : '');
+  el.style.display = 'block';
+}
+function sbSetAuthUI(user){
+  const ov = $('sbAuth'); if(ov) ov.style.display = user ? 'none' : 'flex';
+  const bar = $('sbBar'); if(bar) bar.style.display = user ? 'flex' : 'none';
+  const who = $('sbWho'); if(who) who.textContent = user ? ('👤 '+user.email) : '';
+  sbStatus(user ? 'ready' : 'connected', user ? user.email : '');
+}
+async function sbLogin(){
+  const email = $('sbEmail').value.trim(), pw = $('sbPass').value;
+  $('sbErr').textContent = '';
+  try{ await LibraryAPI.signIn(email, pw); }
+  catch(e){ $('sbErr').textContent = LibraryAPI.msg(e); }
+}
+async function sbLogout(){ try{ await LibraryAPI.signOut(); }catch(e){} location.reload(); }
+async function sbMigrate(){
+  // Preview jumlah data lokal SEBELUM upload — migrasi tidak boleh tak sengaja.
+  const c = LibraryAPI.previewCounts(DB);
+  const go = confirm(
+    'MIGRASI DATA LOKAL → DATABASE ONLINE (Supabase)\n\n'+
+    'Data yang akan disalin:\n'+
+    '  • Anggota  : '+c.members+'\n'+
+    '  • Buku     : '+c.books+'\n'+
+    '  • Pinjaman : '+c.loans+'\n\n'+
+    'Data lokal TIDAK akan dihapus. Aman diulang (idempotent).\n\nLanjutkan?'
+  );
+  if(!go) return;
+  toast('⏳ Migrasi berjalan...');
+  try{
+    const r = await LibraryAPI.migrateLocal(DB);
+    const line = o => o.ok+' berhasil'+(o.fail?(' · '+o.fail+' GAGAL'):'')+(o.err?('\n      → '+o.err):'');
+    let msg = 'MIGRASI SELESAI\n\n'+
+      '  • Anggota  : '+line(r.members)+'\n'+
+      '  • Buku     : '+line(r.books)+'\n'+
+      '  • Pinjaman : '+line(r.loans);
+    if(r.loans.unmapped){
+      msg += '\n\n  ⚠️ '+r.loans.unmapped+' pinjaman TIDAK dimigrasikan (relasi tak valid, data lokal tetap aman):';
+      const list = r.loans.unmappedList || [];
+      list.slice(0,20).forEach(u=>{ msg += '\n      - loan '+u.legacyLoanId+' | anggota: '+u.legacyMember+' | buku: '+u.legacyBook+' → '+u.reason; });
+      if(list.length>20) msg += '\n      ... dan '+(list.length-20)+' lagi (lihat console).';
+      console.warn('Loan UNMAPPED (tidak dimigrasikan):', list);
+    }
+    alert(msg);
+    const anyFail = r.members.fail || r.books.fail || r.loans.fail;
+    toast(anyFail ? '⚠️ Migrasi selesai, sebagian GAGAL — lihat detail' : '✅ Migrasi selesai');
+    await sbLoadAll();
+  }catch(e){ alert('❌ Migrasi gagal total:\n\n'+LibraryAPI.msg(e)); toast('❌ Migrasi gagal'); }
 }
 (async function init(){
   await loadDB();
@@ -1498,8 +1931,57 @@ function renderAll(){
   setupAC('aNama','aNamaList','aId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   setupAC('kNama','kNamaList','kMemberId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   renderAll();
-  autoSyncCheck();
+  // Tentukan & tampilkan status DB online secara eksplisit (A–E).
+  if(!LibraryAPI.configured){
+    sbStatus('unconfigured');            // A: anon key masih placeholder → mode lokal
+    autoSyncCheck();                     // Sheets lama hanya bila Supabase belum dikonfigurasi
+  } else if(!LibraryAPI.libLoaded){
+    sbStatus('failed','library supabase-js gagal dimuat (periksa koneksi internet)');
+  } else {
+    try{
+      await LibraryAPI.ping();           // C: cek koneksi tanpa login (deteksi anon key salah / offline)
+      sbStatus('connected');
+      await sbBoot();                    // D/E: overlay login → data pusat
+    }catch(e){
+      sbStatus('failed', LibraryAPI.msg(e));  // B: konfigurasi ada tapi koneksi gagal
+      if($('sbAuth')) $('sbAuth').style.display='flex';  // gate app; login akan beri pesan error jelas (jangan clobber status)
+    }
+  }
 })();
 </script>
+
+<!-- ============ SUPABASE PETUGAS AUTH (fondasi akses) ============ -->
+<!-- Overlay login: tampil hanya bila Supabase dikonfigurasi DAN belum login. -->
+<div id="sbAuth" style="display:none;position:fixed;inset:0;z-index:9999;background:#1B3B8F;align-items:center;justify-content:center;font-family:Nunito,system-ui,Arial">
+  <div style="background:#fff;max-width:360px;width:90%;padding:26px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center">
+    <div style="font-size:40px">📚</div>
+    <h2 style="color:#1B3B8F;margin:6px 0 2px">SUPAT LIBRARY</h2>
+    <div style="font-size:12px;color:#4a6bb5;margin-bottom:16px">Login Petugas · Perpustakaan SDN Sukasari 4</div>
+    <input id="sbEmail" type="email" placeholder="Email petugas" autocomplete="username"
+      style="width:100%;padding:11px;margin:6px 0;border:1px solid #cbd6ef;border-radius:10px;font-size:14px">
+    <input id="sbPass" type="password" placeholder="Kata sandi" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')sbLogin()"
+      style="width:100%;padding:11px;margin:6px 0;border:1px solid #cbd6ef;border-radius:10px;font-size:14px">
+    <div id="sbErr" style="color:#c0392b;font-size:12px;min-height:16px;margin:4px 0"></div>
+    <button onclick="sbLogin()"
+      style="width:100%;padding:12px;background:#1B3B8F;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Masuk</button>
+    <div style="font-size:11px;color:#94a3c4;margin-top:12px">Akun petugas dibuat di dashboard Supabase.</div>
+  </div>
+</div>
+
+<!-- Status DB online (pojok bawah kiri): jelas membedakan lokal vs online. -->
+<div id="sbStatus" style="display:none;position:fixed;bottom:8px;left:8px;z-index:9000;
+  color:#fff;background:#8792ac;border-radius:999px;padding:6px 12px;font-family:Nunito,system-ui,Arial;
+  font-size:11px;font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,.15);max-width:70vw"></div>
+
+<!-- Bar petugas (pojok atas): identitas, migrasi data lama, logout. -->
+<div id="sbBar" style="display:none;position:fixed;top:8px;right:8px;z-index:9000;gap:8px;align-items:center;
+  background:#fff;border:1px solid #dbe3f5;border-radius:999px;padding:5px 8px 5px 12px;box-shadow:0 3px 12px rgba(0,0,0,.12);font-family:Nunito,system-ui,Arial;font-size:12px">
+  <span id="sbWho" style="color:#1B3B8F;font-weight:700"></span>
+  <button onclick="sbMigrate()" title="Migrasi data localStorage lama ke Supabase"
+    style="border:0;background:#eaf0ff;color:#1B3B8F;border-radius:999px;padding:5px 10px;cursor:pointer;font-weight:700">⬆️ Migrasi</button>
+  <button onclick="sbLogout()"
+    style="border:0;background:#ffe9e9;color:#c0392b;border-radius:999px;padding:5px 10px;cursor:pointer;font-weight:700">Keluar</button>
+</div>
 </body>
 </html>

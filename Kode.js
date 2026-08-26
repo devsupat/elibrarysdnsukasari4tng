@@ -1,8 +1,9 @@
 function doPost(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var data = JSON.parse(e.postData.contents);
-  var sheets = ['ANGGOTA','KATALOG','PEMINJAMAN','ABSENSI','KARYA','EBOOK'];
+  var sheets = ['ANGGOTA','ARSIP_SISWA','KATALOG','PEMINJAMAN','ABSENSI','ABSENSI_SISWA','KARYA','EBOOK'];
   sheets.forEach(function(name){
+    if (!data.hasOwnProperty(name)) return; // jangan sentuh sheet yang tak dikirim (lindungi data lama)
     var rows = data[name] || [];
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     sh.clearContents();
