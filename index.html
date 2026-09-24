@@ -197,6 +197,7 @@ tr:hover td{background:var(--sky)}
 .rank:nth-child(2) .medal{background:#e8e8e8; border-color:#999}
 .rank:nth-child(3) .medal{background:#f5cba7; border-color:#c47b3a}
 .rank .info{flex:1; min-width:0}
+.rank-cover{width:34px;height:46px;font-size:18px;border-radius:6px}
 .rank .info b{display:block; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .rank .info span{font-size:12px; color:#4a6bb5; font-weight:700}
 .rank .count{font-family:'Patrick Hand',cursive; font-size:20px; color:var(--blue)}
@@ -563,6 +564,13 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   font-size: 26px;
   flex-shrink: 0;
 }
+.book-cover img { width:100%; height:100%; object-fit:cover; border-radius:6px; display:block; }
+.title-cover-manager { display:flex; gap:12px; align-items:flex-start; margin-top:12px; padding:12px; background:var(--sky); border:2px solid var(--line); border-radius:14px; }
+.title-cover-preview { width:76px; height:100px; flex-shrink:0; background:#fff; border:2px solid var(--blue); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:32px; }
+.title-cover-preview img { width:100%; height:100%; object-fit:cover; }
+.title-cover-actions { min-width:0; }
+.title-cover-actions p { margin:0 0 8px; font-size:13px; font-weight:800; color:var(--blue-dark); }
+.title-cover-actions small { display:block; margin-top:5px; color:#4a6bb5; line-height:1.35; }
 .book-details h4 { font-size: 15px; color: var(--blue-dark); margin-bottom: 2px; }
 .book-details p { font-size: 12px; color: #666; margin-bottom: 4px; }
 .cat-pill { font-size: 11px; background: var(--sky2); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
@@ -737,8 +745,6 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <p class="hero-sub">Pusat Literasi &amp; Kreativitas Digital Sekolah yang Hidup, Inklusif, dan Terbuka untuk Siswa, Guru, Orang Tua, &amp; Masyarakat Sekolah.</p>
     <div class="hero-cta-group">
       <button class="btn green hero-btn" onclick="goPage('pub-katalog')">📚 Jelajahi Katalog Buku</button>
-      <button class="btn hero-btn" onclick="goPage('pub-akses')">🎫 Akses Saya (Siswa STU)</button>
-      <button class="btn hero-btn" style="background:#ffffff; color:var(--blue-dark); border:2px solid #ffffff; font-weight:800; box-shadow:0 4px 12px rgba(0,0,0,0.15)" onclick="goPage('pub-petugas')">🔐 Area Petugas</button>
     </div>
   </div>
 
@@ -1194,7 +1200,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   <div class="stat-grid">
     <div class="stat"><div class="ico">👧</div><div class="num" id="stAnggota">0</div><div class="lbl">Anggota</div></div>
     <div class="stat"><div class="ico">🧑</div><div class="num" id="stNon">0</div><div class="lbl">Non-Anggota</div></div>
-    <div class="stat"><div class="ico">📖</div><div class="num" id="stBuku">0</div><div class="lbl">Judul Buku</div></div>
+    <div class="stat"><div class="ico">📖</div><div class="num" id="stBuku">0</div><div class="lbl">Eksemplar Buku</div><div class="sub-hint" id="stJudul"></div></div>
     <div class="stat"><div class="ico">🔄</div><div class="num" id="stPinjam">0</div><div class="lbl">Sedang Dipinjam</div></div>
     <div class="stat"><div class="ico">⏰</div><div class="num" id="stTelat">0</div><div class="lbl">Terlambat</div></div>
     <div class="stat"><div class="ico">🖐️</div><div class="num" id="stHadir">0</div><div class="lbl">Pengunjung Hari Ini</div></div>
@@ -1229,41 +1235,41 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <!-- ============ ANGGOTA ============ -->
 <div class="page" id="page-anggota">
   <div class="card">
-    <h2>➕ Tambah / Ubah Data Orang</h2>
-    <p class="subtitle">Anggota (punya kartu) maupun Non-Anggota (siswa/guru/tamu tanpa kartu) bisa didata di sini.</p>
+    <h2>➕ Tambah / Ubah Pengguna Perpustakaan</h2>
+    <p class="subtitle">Kelola anggota serta pengguna tanpa kartu perpustakaan, seperti siswa, guru, staf, dan tamu.</p>
     <input type="hidden" id="mId">
     <div class="frow">
       <div><label>Nama Lengkap *</label><input id="mNama" placeholder="cth: BUDI SANTOSO"></div>
       <div><label>Kelas / Bagian</label><input id="mKelas" placeholder="cth: 5A / Guru / Tamu"></div>
       <div><label>Rombel (opsional)</label><input id="mRombel" placeholder="cth: A"></div>
       <div><label>Jenis Kelamin</label><select id="mJk"><option value="L">L (Laki-laki)</option><option value="P">P (Perempuan)</option></select></div>
-      <div><label>Tipe</label><select id="mTipe"><option>Siswa</option><option>Guru</option><option>Staf</option><option>Tamu</option></select></div>
+      <div><label>Jenis Pengguna</label><select id="mTipe"><option>Siswa</option><option>Guru</option><option>Staf</option><option>Tamu</option></select></div>
       <div><label>Status Siswa</label><select id="mLife"><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select></div>
-      <div><label>No. Anggota (kosongkan jika non-anggota)</label><input id="mNo" placeholder="cth: 25010900031"></div>
-      <div><label>NIS (opsional)</label><input id="mNis" placeholder="cth: 12345"></div>
+      <div><label>Nomor Anggota (jika ada)</label><input id="mNo" placeholder="cth: 25010900031"></div>
+      <input type="hidden" id="mNis">
       <div><label>NISN (opsional)</label><input id="mNisn" placeholder="cth: 0012345678"></div>
-      <div><label>Barcode ID (permanen, lintas aplikasi)</label>
+      <div><label>ID Barcode Kartu</label>
         <div style="display:flex;gap:6px">
-          <input id="mBarcode" placeholder="otomatis saat disimpan" style="flex:1">
-          <button type="button" class="btn small ghost" onclick="fillBarcode()" title="Buat barcode acak">🎲 Generate</button>
+          <input id="mBarcode" placeholder="Masukkan ID dari kartu RFID sekolah" style="flex:1">
+          <button type="button" class="btn small ghost" onclick="fillBarcode()" title="Petunjuk pengisian ID barcode">🎲 Cara Isi</button>
         </div>
       </div>
     </div>
     <button class="btn" id="mSaveBtn" onclick="saveMember()">💾 Simpan</button>
-    <button class="btn ghost" onclick="resetMemberForm()">🧹 Bersihkan</button>
+    <button class="btn ghost" onclick="resetMemberForm()">🧹 Bersihkan Form</button>
   </div>
 
   <div class="card alt">
-    <h2>👧 Daftar Anggota &amp; Non-Anggota <span id="mCount" class="badge b-blue"></span></h2>
+    <h2>👧 Daftar Pengguna Perpustakaan <span id="mCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
     <div class="search-bar">
-      <input id="mSearch" placeholder="🔍 Cari nama / no anggota / barcode...">
+      <input id="mSearch" placeholder="🔍 Cari nama, nomor anggota, atau barcode...">
       <select id="mFilterKelas"><option value="">Semua Kelas</option></select>
-      <select id="mFilterStatus"><option value="">Semua Status</option><option>Anggota</option><option>Non-Anggota</option></select>
-      <select id="mFilterLife"><option value="">Semua Siswa</option><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select>
+      <select id="mFilterStatus"><option value="">Semua Keanggotaan</option><option>Anggota</option><option>Non-Anggota</option></select>
+      <select id="mFilterLife"><option value="">Semua Status Siswa</option><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>JK</th><th>Tipe</th><th>No Anggota</th><th>Barcode</th><th>Status</th><th>Siswa</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>No</th><th>Nama</th><th>Kelas / Bagian</th><th>Jenis Kelamin</th><th>Jenis Pengguna</th><th>No. Anggota</th><th>ID Barcode</th><th>Keanggotaan</th><th>Status Siswa</th><th>Aksi</th></tr></thead>
       <tbody id="memberTable"></tbody>
     </table></div>
     <div style="margin-top:8px"><button class="btn small ghost" id="mMoreBtn" onclick="memberLimit+=50;renderMembers()">Tampilkan lebih banyak ⬇️</button></div>
@@ -1272,32 +1278,124 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 
 <!-- ============ KATALOG ============ -->
 <div class="page" id="page-katalog">
+
+  <!-- daftar judul dipakai bersama oleh form tambah & worklist penentuan judul -->
+  <datalist id="dlTitles"></datalist>
+
+  <!-- ---------- TAMBAH BUKU ---------- -->
   <div class="card">
-    <h2>➕ Tambah / Ubah Buku</h2>
-    <p class="subtitle">Masukkan katalog dengan nomor/kode buku agar mudah dilacak.</p>
-    <input type="hidden" id="bId">
-    <div class="frow">
-      <div><label>Kode / Nomor Buku *</label><input id="bKode" placeholder="cth: 20251016693"></div>
-      <div><label>Judul Buku *</label><input id="bJudul" placeholder="cth: LASKAR PELANGI"></div>
-      <div><label>Pengarang</label><input id="bPengarang"></div>
-      <div><label>Penerbit</label><input id="bPenerbit"></div>
-      <div><label>Tahun</label><input id="bTahun" placeholder="cth: 2024"></div>
-      <div><label>Kategori</label><input id="bKategori" placeholder="cth: Fiksi / Komik / Ensiklopedia"></div>
-      <div><label>Jumlah Eksemplar</label><input id="bJumlah" type="number" min="1" value="1"></div>
+    <h2>➕ Tambah Buku</h2>
+    <p class="subtitle">Kode setiap eksemplar dibuatkan otomatis oleh sistem — tidak perlu diketik.</p>
+
+    <label>Judul Buku *</label>
+    <input id="nbJudul" list="dlTitles" placeholder="Ketik judul, mis: MATEMATIKA KELAS 4" autocomplete="off">
+    <input type="hidden" id="nbTitleId">
+    <div id="nbTitleInfo" class="hint" style="margin-top:8px">
+      Ketik judulnya. Kalau sudah pernah didata, pilih dari daftar yang muncul agar judulnya tidak dobel.
     </div>
-    <button class="btn" id="bSaveBtn" onclick="saveBook()">💾 Simpan Buku</button>
-    <button class="btn ghost" onclick="resetBookForm()">🧹 Bersihkan</button>
+
+    <div id="nbBiblio">
+      <h3>Keterangan Judul</h3>
+      <div class="frow">
+        <div><label>Pengarang</label><input id="nbPengarang"></div>
+        <div><label>Penerbit</label><input id="nbPenerbit"></div>
+        <div><label>Tahun Terbit</label><input id="nbTahun" placeholder="cth: 2024"></div>
+        <div><label>ISBN <small>(boleh kosong)</small></label><input id="nbIsbn" placeholder="cth: 978-602-..."></div>
+        <div><label>Kategori</label><input id="nbKategori" placeholder="cth: Pelajaran / Fiksi"></div>
+        <div><label>Untuk Kelas</label><input id="nbLevel" placeholder="cth: 4 / 1-3 / Umum"></div>
+      </div>
+      <div class="title-cover-manager">
+        <div class="title-cover-preview" id="nbCoverPreview">📖</div>
+        <div class="title-cover-actions">
+          <p>Cover Buku</p>
+          <input type="file" id="nbCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <small>Foto atau pilih gambar cover. Gambar akan diperkecil otomatis.</small>
+        </div>
+      </div>
+    </div>
+
+    <h3>Keterangan Buku Fisik</h3>
+    <div class="frow">
+      <div><label>Sumber Buku</label><select id="nbSumber">
+        <option value="">— belum diketahui —</option>
+        <option>Bantuan Dinas</option><option>BOS</option><option>Donasi</option>
+        <option>Pembelian Sekolah</option><option>Bantuan Komite</option><option>Lainnya</option>
+      </select></div>
+      <div><label>Tanggal Masuk</label><input type="date" id="nbTanggal"></div>
+      <div><label>Lokasi / Rak</label><input id="nbLokasi" placeholder="cth: Rak A-04"></div>
+      <div><label>Kondisi</label><select id="nbKondisi">
+        <option value="BAIK">Baik</option>
+        <option value="RUSAK_RINGAN">Rusak ringan</option>
+        <option value="RUSAK_BERAT">Rusak berat</option>
+      </select></div>
+      <div><label>Jumlah Eksemplar *</label><input type="number" id="nbJumlah" min="1" max="200" value="1"></div>
+    </div>
+    <div class="hint">📦 Tiap eksemplar dapat kodenya sendiri, supaya bisa ditempeli QR satu per satu.</div>
+
+    <button class="btn" id="nbSaveBtn" onclick="simpanBukuBaru()">💾 Simpan &amp; Buatkan Kode</button>
+    <button class="btn ghost" onclick="resetFormBukuBaru()">🧹 Bersihkan</button>
+
+    <div id="nbHasil" style="display:none;margin-top:14px"></div>
   </div>
 
-  <div class="card alt">
-    <h2>📖 Katalog Buku <span id="bCount" class="badge b-blue"></span></h2>
+  <!-- ---------- WORKLIST JUDUL BELUM DITENTUKAN ---------- -->
+  <div class="card alt" id="cardReview" style="display:none">
+    <h2>❓ Buku yang Judulnya Belum Dipastikan <span id="rvCount" class="badge b-orange"></span></h2>
+    <div class="squiggle"></div>
+    <p class="subtitle">
+      Buku-buku ini punya judul yang tertulis sama, tapi didata pada tanggal berbeda — bisa jadi buku yang sama,
+      bisa juga buku berbeda. Sistem sengaja tidak menebak. Bisa dikerjakan sedikit demi sedikit kapan saja.
+    </p>
+    <button class="btn small" id="rvToggle" onclick="rvBuka()">📋 Kerjakan sekarang</button>
+    <div id="rvList" style="display:none"></div>
+    <div id="rvMoreWrap" style="display:none;margin-top:8px">
+      <button class="btn small ghost" onclick="rvLimit+=10;renderReviewJudul()">Tampilkan lebih banyak ⬇️</button>
+    </div>
+  </div>
+
+  <!-- ---------- INVENTARIS ---------- -->
+  <div class="card">
+    <h2>📚 Inventaris Buku <span id="bCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
     <div class="search-bar">
-      <input id="bSearch" placeholder="🔍 Cari judul / kode buku...">
-      <select id="bFilterStok"><option value="">Semua</option><option value="ada">Tersedia</option><option value="habis">Sedang Dipinjam Semua</option></select>
+      <input id="bSearch" placeholder="🔍 Cari kode, judul, pengarang, ISBN, atau rak...">
+      <select id="bFilterStatus">
+        <option value="">Semua status</option>
+        <option value="AVAILABLE">Ada di rak</option>
+        <option value="BORROWED">Sedang dipinjam</option>
+        <option value="LOST">Hilang</option>
+        <option value="DAMAGED">Rusak</option>
+        <option value="RETIRED">Ditarik</option>
+      </select>
+      <select id="bFilterKondisi">
+        <option value="">Semua kondisi</option>
+        <option value="BAIK">Baik</option>
+        <option value="RUSAK_RINGAN">Rusak ringan</option>
+        <option value="RUSAK_BERAT">Rusak berat</option>
+      </select>
+      <select id="bFilterSumber">
+        <option value="">Semua sumber</option>
+        <option value="__kosong__">Sumber belum didata</option>
+        <option>Bantuan Dinas</option><option>BOS</option><option>Donasi</option>
+        <option>Pembelian Sekolah</option><option>Bantuan Komite</option><option>Lainnya</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px">
+        <input type="checkbox" id="bFilterNoTitle" style="width:auto"> Belum punya judul
+      </label>
     </div>
+    <!-- baris aksi untuk mencetak label: muncul hanya bila ada buku dicentang -->
+    <div id="bAksiBar" style="display:none;margin:10px 0;padding:10px 12px;background:var(--sky);
+         border:2px solid var(--blue);border-radius:12px;align-items:center;gap:10px;flex-wrap:wrap">
+      <b id="bPilihInfo" style="color:var(--blue-dark)"></b>
+      <button class="btn small green" onclick="cetakLabelTerpilih()">🖨️ Cetak Label QR</button>
+      <button class="btn small ghost" onclick="bBersihkanPilihan()">Batalkan pilihan</button>
+    </div>
+
     <div class="table-wrap"><table>
-      <thead><tr><th>Kode Buku</th><th>Judul</th><th>Kategori</th><th>Jml</th><th>Tersedia</th><th>Aksi</th></tr></thead>
+      <thead><tr>
+        <th style="width:34px"><input type="checkbox" id="bPilihSemua" title="Pilih semua yang tampil"
+            onclick="bTogglePilihSemua(this.checked)" style="width:auto"></th>
+        <th>Kode</th><th>Judul</th><th>Rak</th><th>Sumber</th><th>Kondisi</th><th>Status</th><th>Aksi</th></tr></thead>
       <tbody id="bookTable"></tbody>
     </table></div>
     <div style="margin-top:8px"><button class="btn small ghost" id="bMoreBtn" onclick="bookLimit+=50;renderBooks()">Tampilkan lebih banyak ⬇️</button></div>
@@ -1617,7 +1715,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
   </div>
   <div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px dashed var(--line);font-size:12.5px;color:#6a89cc">
-    ✏️ SUPAT LIBRARY · Dibuat dengan 💙 untuk Ekosistem SDN Sukasari 4 Kota Tangerang
+    Digilib © SDN Sukasari 4 · Dev: Ahmad Saoghi (Guru SDN Sukasari 4)
   </div>
 </footer>
 
@@ -1656,6 +1754,75 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
   </div>
 </div>
+
+<!-- ============ UBAH DATA BUKU ============ -->
+<div class="modal-bg" id="copyModal">
+  <div class="modal">
+    <span class="close-x" onclick="tutupUbahBuku()">✖</span>
+    <h2 class="doodle-font" style="font-size:24px;margin-bottom:4px">✏️ Ubah Data Buku</h2>
+    <input type="hidden" id="ubId">
+    <div class="hint" style="margin-bottom:10px">
+      Kode eksemplar: <b id="ubKode" style="font-family:monospace"></b>
+      <br><small>Kode tidak bisa diubah — label QR-nya sudah menempel di buku.</small>
+    </div>
+
+    <div id="ubBiblioWrap">
+      <h3>Keterangan Judul</h3>
+      <div id="ubBiblioNote" class="hint" style="margin-bottom:8px"></div>
+      <div class="frow">
+        <div><label>Judul *</label><input id="ubJudul"></div>
+        <div><label>Pengarang</label><input id="ubPengarang"></div>
+        <div><label>Penerbit</label><input id="ubPenerbit"></div>
+        <div><label>Tahun Terbit</label><input id="ubTahun"></div>
+        <div><label>ISBN</label><input id="ubIsbn"></div>
+        <div><label>Kategori</label><input id="ubKategori"></div>
+        <div><label>Untuk Kelas</label><input id="ubLevel"></div>
+      </div>
+      <div class="title-cover-manager">
+        <div class="title-cover-preview" id="ubCoverPreview">📖</div>
+        <div class="title-cover-actions">
+          <p>Cover Buku</p>
+          <input type="file" id="ubCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <button type="button" class="btn small ghost" onclick="hapusCoverUbah()">Hapus Cover</button>
+          <small>Cover berlaku untuk semua eksemplar judul ini.</small>
+        </div>
+      </div>
+    </div>
+
+    <h3>Keterangan Buku Fisik</h3>
+    <div class="frow">
+      <div><label>Sumber Buku</label><select id="ubSumber">
+        <option value="">— belum diketahui —</option>
+        <option>Bantuan Dinas</option><option>BOS</option><option>Donasi</option>
+        <option>Pembelian Sekolah</option><option>Bantuan Komite</option><option>Lainnya</option>
+      </select></div>
+      <div><label>Tanggal Masuk</label><input type="date" id="ubTanggal"></div>
+      <div><label>Lokasi / Rak</label><input id="ubLokasi"></div>
+      <div><label>Kondisi</label><select id="ubKondisi">
+        <option value="BAIK">Baik</option>
+        <option value="RUSAK_RINGAN">Rusak ringan</option>
+        <option value="RUSAK_BERAT">Rusak berat</option>
+      </select></div>
+    </div>
+
+    <div style="margin-top:14px">
+      <button class="btn green" onclick="simpanUbahBuku()">💾 Simpan Perubahan</button>
+      <button class="btn ghost" onclick="tutupUbahBuku()">Batal</button>
+    </div>
+
+    <h3 style="margin-top:18px">Status Buku Fisik</h3>
+    <div class="hint" style="margin-bottom:8px">
+      Buku tidak pernah dihapus, supaya riwayat peminjamannya tetap bisa ditelusuri.
+    </div>
+    <div id="ubStatusNow" style="margin-bottom:8px"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <button class="btn small green" onclick="ubahStatusBuku('AVAILABLE')">✅ Kembalikan ke rak</button>
+      <button class="btn small yellow" onclick="ubahStatusBuku('DAMAGED')">🛠️ Tandai rusak</button>
+      <button class="btn small red" onclick="ubahStatusBuku('LOST')">❓ Tandai hilang</button>
+      <button class="btn small ghost" onclick="ubahStatusBuku('RETIRED')">📦 Tarik dari peredaran</button>
+    </div>
+  </div>
+</div>
 <script>
 /* =================== STORAGE =================== */
 let DB = null;
@@ -1665,7 +1832,7 @@ const hasLocal = (()=>{ try{ localStorage.setItem('__t','1'); localStorage.remov
 
 function freshDB(){
   return {
-    members: [], books: [],
+    members: [], books: [], titles: [],
     loans: [], visits: [], ebooks: [], karya: [], attendance: [],
     settings: { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'', tahunAjaran:'' },
     seq: { m: 1, b: 1, l: 1, v: 1, e: 1, k: 1, as: 1 },
@@ -1699,6 +1866,7 @@ async function loadDB(){
   if(!DB.settings) DB.settings = { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'' };
   if(!DB.ebooks) DB.ebooks = [];
   if(!DB.karya) DB.karya = [];
+  if(!DB.titles) DB.titles = [];   // judul/bibliografi; terisi dari server saat petugas login
   if(!DB.seq) DB.seq = { m: DB.members.length+1, b: DB.books.length+1, l: DB.loans.length+1, v: DB.visits.length+1 };
   if(!DB.seq.e) DB.seq.e = DB.ebooks.length+1;
   if(!DB.seq.k) DB.seq.k = DB.karya.length+1;
@@ -1762,6 +1930,11 @@ function fmtDate(iso){ if(!iso) return '-'; const [y,m,d] = iso.split('-'); retu
 function fmtDateLong(iso){ if(!iso) return '-'; const [y,m,d] = iso.split('-'); return parseInt(d)+' '+BULAN[parseInt(m)-1]+' '+y; }
 function addDays(iso, n){ const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function bookCoverHTML(url, icon='📖', extra=''){
+  return `<div class="book-cover ${extra}">${url
+    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.onerror=null;this.remove();this.parentElement.textContent='${icon}'">`
+    : icon}</div>`;
+}
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2600); }
 
 /* =================== CLOCK =================== */
@@ -1881,7 +2054,7 @@ function sbLoginModalOpen() {
 
 /* =================== MEMBERS =================== */
 let memberLimit = 50;
-function fillBarcode(){ toast('ℹ️ Barcode ID diinput manual dari kartu RFID sekolah — tidak dibuat otomatis.'); }
+function fillBarcode(){ toast('ℹ️ ID Barcode Kartu diisi manual dari kartu RFID sekolah — aplikasi tidak membuatnya.'); }
 async function saveMember(){
   const nama = $('mNama').value.trim().toUpperCase();
   if(!nama){ toast('⚠️ Nama wajib diisi!'); return; }
@@ -1889,8 +2062,8 @@ async function saveMember(){
   const no = $('mNo').value.trim();
   // Barcode ID = dari sistem RFID pusat sekolah, diinput/paste MANUAL. eLibrary tidak generate.
   const barcodeId = $('mBarcode').value.trim().toUpperCase();
-  if(!barcodeId){ toast('⚠️ Barcode ID wajib — scan/paste dari kartu RFID sekolah.'); return; }
-  if(barcodeExists(barcodeId, id)){ toast('⚠️ Barcode ID sudah digunakan anggota lain.'); return; }
+  if(!barcodeId){ toast('⚠️ ID Barcode Kartu wajib — scan/tempel dari kartu RFID sekolah.'); return; }
+  if(barcodeExists(barcodeId, id)){ toast('⚠️ ID Barcode Kartu sudah digunakan pengguna lain.'); return; }
   const data = { nama, kelas: $('mKelas').value.trim().toUpperCase(), rombel: $('mRombel').value.trim().toUpperCase(),
     jk: $('mJk').value, tipe: $('mTipe').value, noAnggota: no, nis: $('mNis').value.trim(), nisn: $('mNisn').value.trim(),
     barcodeId, lifecycle: $('mLife').value, status: no ? 'Anggota' : 'Non-Anggota' };
@@ -1935,7 +2108,7 @@ function resetMemberForm(){ ['mId','mNama','mKelas','mRombel','mNo','mNis','mNis
 /* Cetak kartu siswa + QR barcode. Barcode SELALU dari barcodeId tersimpan (tak pernah generate saat print). */
 function printCard(id){
   const m = DB.members.find(x=>x.id===id); if(!m) return;
-  if(!m.barcodeId){ toast('⚠️ Anggota belum punya Barcode ID (dari RFID). Isi dulu lewat Ubah.'); return; }
+  if(!m.barcodeId){ toast('⚠️ Anggota belum memiliki ID Barcode Kartu dari RFID. Isi dulu lewat Ubah.'); return; }
   const tmp = document.createElement('div'); tmp.style.display='none'; document.body.appendChild(tmp);
   new QRCode(tmp, { text:m.barcodeId, width:180, height:180, colorDark:'#1B3B8F', colorLight:'#ffffff' });
   setTimeout(()=>{
@@ -1970,7 +2143,7 @@ function renderMembers(){
   let rows = DB.members.filter(m =>
     (!q || m.nama.toLowerCase().includes(q) || (m.noAnggota||'').toLowerCase().includes(q) || (m.barcodeId||'').toLowerCase().includes(q)) &&
     (!fk || m.kelas===fk) && (!fs || m.status===fs) && (!fl || (m.lifecycle||'AKTIF')===fl));
-  $('mCount').textContent = rows.length + ' orang';
+  $('mCount').textContent = rows.length + ' pengguna';
   const shown = rows.slice(0, memberLimit);
   const lifeBadge = { AKTIF:'b-green', LULUS:'b-blue', PINDAH:'b-orange', NONAKTIF:'b-gray' };
   $('memberTable').innerHTML = shown.map((m,i)=>`<tr>
@@ -1993,65 +2166,505 @@ function renderMembers(){
 
 /* =================== BOOKS =================== */
 let bookLimit = 50;
-async function saveBook(){
-  const kode = $('bKode').value.trim(), judul = $('bJudul').value.trim().toUpperCase();
-  if(!kode || !judul){ toast('⚠️ Kode dan judul buku wajib diisi!'); return; }
-  const id = $('bId').value;
-  const jumlah = Math.max(1, parseInt($('bJumlah').value)||1);
-  let data;
-  if(id){
-    const b = DB.books.find(x=>x.id===id);
-    const borrowed = b.jumlah - b.tersedia;
-    data = { id, kode, judul, pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
-      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia: Math.max(0, jumlah - borrowed) };
-  } else {
-    if(!SB_ENABLED && DB.books.some(x=>x.kode===kode)){ toast('⚠️ Kode buku ini sudah ada di katalog'); return; }
-    data = { kode, judul, pengarang:$('bPengarang').value.trim(), penerbit:$('bPenerbit').value.trim(),
-      tahun:$('bTahun').value.trim(), kategori:$('bKategori').value.trim(), jumlah, tersedia:jumlah };
-  }
-  if(SB_ENABLED){
-    try{
-      const saved = await LibraryAPI.upsertBook(data);
-      if(id){ const b = DB.books.find(x=>x.id===id); if(b) Object.assign(b, saved); }
-      else DB.books.unshift(saved);
-    }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
-  } else {
-    if(id){ const b = DB.books.find(x=>x.id===id); Object.assign(b, data); }
-    else { data.id = 'B'+String(DB.seq.b++).padStart(4,'0'); DB.books.push(data); }
-  }
-  toast(id ? '✅ Buku diperbarui' : '✅ Buku "'+judul+'" masuk katalog');
-  saveDB(); resetBookForm(); renderBooks(); renderDashboard();
+/* Satu baris DB.books = satu eksemplar fisik. Judul hidup di DB.titles.
+   Kode eksemplar dibuat server (counter per-tanggal), tidak pernah diketik petugas. */
+const STATUS_COPY_LABEL = { AVAILABLE:['b-green','✅ Ada di rak'], BORROWED:['b-blue','📖 Dipinjam'],
+  LOST:['b-red','❓ Hilang'], DAMAGED:['b-orange','🛠️ Rusak'], RETIRED:['b-gray','📦 Ditarik'] };
+const KONDISI_LABEL = { BAIK:'Baik', RUSAK_RINGAN:'Rusak ringan', RUSAK_BERAT:'Rusak berat' };
+
+function statusCopyBadge(s){
+  const v = STATUS_COPY_LABEL[s] || STATUS_COPY_LABEL.AVAILABLE;
+  return `<span class="badge ${v[0]}">${v[1]}</span>`;
 }
-function editBook(id){
+function findTitleByJudul(j){
+  const k = (j||'').trim().toUpperCase();
+  return k ? DB.titles.find(t=>(t.judul||'').toUpperCase()===k) : null;
+}
+function copyCountOfTitle(tid){ return DB.books.filter(b=>b.titleId===tid).length; }
+
+function renderTitleDatalist(){
+  const dl = $('dlTitles'); if(!dl) return;
+  dl.innerHTML = DB.titles.map(t=>`<option value="${esc(t.judul)}"></option>`).join('');
+}
+
+let nbCoverBlob = null, ubCoverBlob = null, ubCoverPath = '', ubCoverDelete = false;
+const COVER_MAX_INPUT = 12 * 1024 * 1024;
+
+function coverPreview(el, url){
+  const box = $(el); if(!box) return;
+  box.innerHTML = url
+    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.remove();this.parentElement.textContent='📖'">`
+    : '📖';
+}
+
+function optimizeCover(file){
+  return new Promise((resolve, reject)=>{
+    if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type||'')){
+      reject(new Error('Format gambar tidak didukung. Gunakan JPG, PNG, atau WebP.')); return;
+    }
+    if(file.size > COVER_MAX_INPUT){ reject(new Error('Ukuran gambar terlalu besar. Maksimal 12 MB.')); return; }
+    const src = URL.createObjectURL(file), img = new Image();
+    img.onload = ()=>{
+      URL.revokeObjectURL(src);
+      const max = 900, scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob=>blob ? resolve(blob) : reject(new Error('Gambar tidak dapat diproses.')), 'image/webp', .82);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(src); reject(new Error('Gambar tidak dapat dibaca.')); };
+    img.src = src;
+  });
+}
+
+async function chooseCover(prefix, file){
+  if(!file) return;
+  try{
+    const blob = await optimizeCover(file);
+    if(prefix==='nb'){ nbCoverBlob = blob; coverPreview('nbCoverPreview', URL.createObjectURL(blob)); }
+    else { ubCoverBlob = blob; ubCoverDelete = false; coverPreview('ubCoverPreview', URL.createObjectURL(blob)); }
+  }catch(e){ toast('⚠️ '+e.message); $(''+prefix+'CoverFile').value=''; }
+}
+
+function setTitleCoverPreview(prefix, title){
+  coverPreview(prefix+'CoverPreview', title && title.coverUrl ? title.coverUrl : '');
+}
+
+function hapusCoverUbah(){
+  ubCoverBlob = null; ubCoverDelete = true; ubCoverPath = '';
+  $('ubCoverFile').value = '';
+  coverPreview('ubCoverPreview', '');
+}
+
+function resetNewCover(){
+  nbCoverBlob = null; $('nbCoverFile').value = ''; coverPreview('nbCoverPreview', '');
+}
+
+/* Petugas tidak perlu tahu istilah "title". Form menjelaskan sendiri apa yang akan terjadi. */
+function nbCekJudul(){
+  const t = findTitleByJudul($('nbJudul').value);
+  const info = $('nbTitleInfo'), biblio = $('nbBiblio');
+  $('nbTitleId').value = t ? t.id : '';
+  const fields = ['nbPengarang','nbPenerbit','nbTahun','nbIsbn','nbKategori','nbLevel'];
+  if(t){
+    $('nbPengarang').value=t.pengarang||''; $('nbPenerbit').value=t.penerbit||'';
+    $('nbTahun').value=t.tahun||''; $('nbIsbn').value=t.isbn||'';
+    $('nbKategori').value=t.kategori||''; $('nbLevel').value=t.levelKelas||'';
+    setTitleCoverPreview('nb', t);
+    fields.forEach(i=>$(i).disabled=true);
+    biblio.style.opacity = .6;
+    info.innerHTML = `✅ <b>Judul ini sudah ada</b> (${copyCountOfTitle(t.id)} eksemplar terdata).
+      Buku baru akan <b>ditambahkan sebagai eksemplar</b> judul tersebut — judulnya tidak akan dobel.
+      <br><small>Mau memperbaiki keterangan judulnya? Lewat tombol ✏️ di daftar inventaris.</small>`;
+  } else {
+    fields.forEach(i=>$(i).disabled=false);
+    biblio.style.opacity = 1;
+    setTitleCoverPreview('nb', null);
+    info.innerHTML = ($('nbJudul').value.trim())
+      ? '🆕 <b>Judul baru</b> akan dibuat, lalu eksemplarnya dibuatkan sesuai jumlah di bawah.'
+      : 'Ketik judulnya. Kalau sudah pernah didata, pilih dari daftar yang muncul agar judulnya tidak dobel.';
+  }
+}
+
+function resetFormBukuBaru(){
+  ['nbJudul','nbTitleId','nbPengarang','nbPenerbit','nbTahun','nbIsbn','nbKategori','nbLevel','nbLokasi'].forEach(i=>$(i).value='');
+  $('nbSumber').value=''; $('nbKondisi').value='BAIK'; $('nbJumlah').value=1;
+  $('nbTanggal').value = todayStr();
+  $('nbHasil').style.display='none';
+  resetNewCover();
+  nbCekJudul();
+}
+
+async function simpanBukuBaru(){
+  const judul = $('nbJudul').value.trim().toUpperCase();
+  const jumlah = parseInt($('nbJumlah').value)||0;
+  if(!judul){ toast('⚠️ Judul buku wajib diisi'); $('nbJudul').focus(); return; }
+  if(jumlah<1 || jumlah>200){ toast('⚠️ Jumlah eksemplar harus 1 sampai 200'); $('nbJumlah').focus(); return; }
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online untuk membuat kode eksemplar.'); return; }
+
+  const btn = $('nbSaveBtn'); btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  try{
+    const dibuat = await LibraryAPI.addBookCopies({
+      titleId: $('nbTitleId').value || null, judul,
+      pengarang:$('nbPengarang').value.trim(), penerbit:$('nbPenerbit').value.trim(),
+      tahun:$('nbTahun').value.trim(), isbn:$('nbIsbn').value.trim(),
+      kategori:$('nbKategori').value.trim(), levelKelas:$('nbLevel').value.trim(),
+      sumber:$('nbSumber').value || null, tanggalMasuk:$('nbTanggal').value || todayStr(),
+      lokasi:$('nbLokasi').value.trim(), kondisi:$('nbKondisi').value, jumlah
+    });
+    // muat ulang dari server supaya judul baru & relasi ikut terbawa
+    DB.titles = await LibraryAPI.pullTitles();
+    const title = DB.titles.find(t=>t.id===($('nbTitleId').value||'') || t.judul===judul);
+    if(nbCoverBlob && title){
+      const savedTitle = await LibraryAPI.uploadTitleCover(title.id, nbCoverBlob, title.coverPath);
+      const pos = DB.titles.findIndex(t=>t.id===title.id); if(pos>=0) DB.titles[pos]=savedTitle;
+    }
+    dibuat.forEach(b=>DB.books.unshift(b));
+    saveDB(); renderTitleDatalist(); renderBooks(); renderDashboard(); renderReviewJudul();
+
+    // simpan agar petugas bisa langsung mencetak labelnya tanpa mencari ulang
+    nbBaruDibuat = dibuat.map(b=>b.id);
+    $('nbHasil').style.display='block';
+    $('nbHasil').innerHTML = `
+      <div style="background:var(--sky);border:2px solid var(--ok);border-radius:14px;padding:12px">
+        <b style="color:var(--blue-dark)">✅ ${dibuat.length} eksemplar "${esc(judul)}" berhasil dibuat.</b>
+        <p style="font-size:13px;margin:6px 0">Kode berikut siap ditempel sebagai QR di tiap buku:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${dibuat.map(b=>`<code style="background:#fff;border:2px solid var(--line);border-radius:8px;padding:4px 8px;font-weight:800">${esc(b.kode)}</code>`).join('')}
+        </div>
+        <button class="btn small green" style="margin-top:10px" onclick="cetakLabelBaruDibuat()">
+          🖨️ Cetak Label QR (${dibuat.length} label)
+        </button>
+      </div>`;
+    toast('✅ '+dibuat.length+' eksemplar masuk inventaris');
+    resetNewCover();
+    // judul & bibliografi dibiarkan terisi: petugas sering mendata beberapa batch judul yang sama
+    $('nbJumlah').value = 1; nbCekJudul();
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+  finally{ btn.disabled=false; btn.textContent='💾 Simpan & Buatkan Kode'; }
+}
+
+/* ---------- UBAH DATA BUKU ---------- */
+function ubahBuku(id){
   const b = DB.books.find(x=>x.id===id); if(!b) return;
-  $('bId').value=b.id; $('bKode').value=b.kode; $('bJudul').value=b.judul; $('bPengarang').value=b.pengarang||'';
-  $('bPenerbit').value=b.penerbit||''; $('bTahun').value=b.tahun||''; $('bKategori').value=b.kategori||''; $('bJumlah').value=b.jumlah||1;
-  $('bSaveBtn').textContent='💾 Simpan Perubahan'; goPage('katalog'); $('bKode').focus();
+  const t = b.titleId ? DB.titles.find(x=>x.id===b.titleId) : null;
+  $('ubId').value = b.id;
+  $('ubKode').textContent = b.kode;
+  $('ubJudul').value = t ? t.judul : (b.judul||'');
+  $('ubPengarang').value = t ? (t.pengarang||'') : (b.pengarang||'');
+  $('ubPenerbit').value  = t ? (t.penerbit||'')  : (b.penerbit||'');
+  $('ubTahun').value     = t ? (t.tahun||'')     : (b.tahun||'');
+  $('ubIsbn').value      = t ? (t.isbn||'')      : '';
+  $('ubKategori').value  = t ? (t.kategori||'')  : (b.kategori||'');
+  $('ubLevel').value     = t ? (t.levelKelas||'') : '';
+  ubCoverBlob = null; ubCoverDelete = false; ubCoverPath = t ? (t.coverPath||'') : '';
+  $('ubCoverFile').value = '';
+  setTitleCoverPreview('ub', t);
+  $('ubBiblioNote').innerHTML = t
+    ? `Perubahan di sini berlaku untuk <b>seluruh ${copyCountOfTitle(t.id)} eksemplar</b> judul ini. Riwayat peminjaman tidak ikut berubah.`
+    : `Buku ini belum ditautkan ke judul mana pun. Menyimpan akan <b>membuatkan judulnya</b> dan menautkan eksemplar ini.`;
+  $('ubSumber').value  = b.sumber||'';
+  $('ubTanggal').value = b.tanggalMasuk||'';
+  $('ubLokasi').value  = b.lokasi||'';
+  $('ubKondisi').value = b.kondisi||'BAIK';
+  $('ubStatusNow').innerHTML = 'Status sekarang: '+statusCopyBadge(b.statusCopy);
+  $('copyModal').classList.add('show');
 }
-async function delBook(id){
-  const b = DB.books.find(x=>x.id===id);
-  if(!confirm('Hapus buku "'+b.judul+'" dari katalog?')) return;
-  if(SB_ENABLED){ try{ await LibraryAPI.deleteBook(id); }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; } }
-  DB.books = DB.books.filter(x=>x.id!==id);
-  saveDB(); renderBooks(); renderDashboard(); toast('🗑️ Buku dihapus');
+function tutupUbahBuku(){ $('copyModal').classList.remove('show'); }
+
+async function simpanUbahBuku(){
+  const id = $('ubId').value; const b = DB.books.find(x=>x.id===id); if(!b) return;
+  const judul = $('ubJudul').value.trim().toUpperCase();
+  if(!judul){ toast('⚠️ Judul wajib diisi'); return; }
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online.'); return; }
+  const biblio = { judul, pengarang:$('ubPengarang').value.trim(), penerbit:$('ubPenerbit').value.trim(),
+    tahun:$('ubTahun').value.trim(), isbn:$('ubIsbn').value.trim(),
+    kategori:$('ubKategori').value.trim(), levelKelas:$('ubLevel').value.trim() };
+  try{
+    if(b.titleId){
+      const title = DB.titles.find(t=>t.id===b.titleId);
+      const savedTitle = await LibraryAPI.updateTitle(b.titleId, biblio);
+      if(ubCoverDelete) await LibraryAPI.removeTitleCover(b.titleId, ubCoverPath);
+      else if(ubCoverBlob) await LibraryAPI.uploadTitleCover(b.titleId, ubCoverBlob, title && title.coverPath);
+    } else {
+      // eksemplar yatim: buatkan judulnya, lalu tautkan hanya eksemplar ini
+      const t = await LibraryAPI.createTitle(biblio);
+      await LibraryAPI.assignTitle([b.id], t.id);
+      if(ubCoverBlob) await LibraryAPI.uploadTitleCover(t.id, ubCoverBlob, '');
+    }
+    await LibraryAPI.updateCopy(b.id, {
+      sumber:$('ubSumber').value || null, tanggalMasuk:$('ubTanggal').value || null,
+      lokasi:$('ubLokasi').value.trim(), kondisi:$('ubKondisi').value });
+    await muatUlangInventaris();
+    tutupUbahBuku(); toast('✅ Data buku diperbarui');
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
 }
-function resetBookForm(){ ['bId','bKode','bJudul','bPengarang','bPenerbit','bTahun','bKategori'].forEach(i=>$(i).value=''); $('bJumlah').value=1; $('bSaveBtn').textContent='💾 Simpan Buku'; }
+
+async function ubahStatusBuku(status){
+  const id = $('ubId').value; const b = DB.books.find(x=>x.id===id); if(!b) return;
+  const teks = { AVAILABLE:'dikembalikan ke rak', DAMAGED:'ditandai RUSAK',
+                 LOST:'ditandai HILANG', RETIRED:'ditarik dari peredaran' }[status];
+  if(!confirm('Eksemplar '+b.kode+' akan '+teks+'.\n\nRiwayat peminjamannya tetap tersimpan. Lanjutkan?')) return;
+  try{
+    await LibraryAPI.setCopyStatus(b.id, status, null);
+    await muatUlangInventaris();
+    const nb = DB.books.find(x=>x.id===id);
+    if(nb) $('ubStatusNow').innerHTML = 'Status sekarang: '+statusCopyBadge(nb.statusCopy);
+    toast('✅ Status eksemplar diperbarui');
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
+async function muatUlangInventaris(){
+  DB.books  = await LibraryAPI.pullBooks();
+  DB.titles = await LibraryAPI.pullTitles();
+  saveDB(); renderTitleDatalist(); renderBooks(); renderReviewJudul(); renderDashboard();
+}
+
+/* ---------- WORKLIST: eksemplar yang judulnya belum dipastikan ---------- */
+/* Worklist ini pekerjaan bertahap, bukan tugas harian. Dibiarkan tertutup
+   supaya tabel inventaris — alat kerja sehari-hari — tetap terlihat tanpa
+   harus menggulir melewati puluhan kelompok. */
+let rvGroups = [], rvTerbuka = false, rvLimit = 10;
+function rvBuka(){
+  rvTerbuka = !rvTerbuka;
+  rvLimit = 10;
+  $('rvToggle').textContent = rvTerbuka ? '🔽 Sembunyikan dulu' : '📋 Kerjakan sekarang';
+  renderReviewJudul();
+}
+function renderReviewJudul(){
+  const yatim = DB.books.filter(b=>!b.titleId);
+  const card = $('cardReview'); if(!card) return;
+  if(!yatim.length){ card.style.display='none'; return; }
+  card.style.display='';
+  $('rvCount').textContent = yatim.length + ' eksemplar';
+  $('rvList').style.display = rvTerbuka ? '' : 'none';
+  if(!rvTerbuka){ $('rvMoreWrap').style.display='none'; $('rvList').innerHTML=''; rvGroups=[]; return; }
+
+  // Refresh realtime bisa datang kapan saja. Tanpa ini, judul yang sedang
+  // diketik petugas ikut terhapus saat daftar dibangun ulang.
+  const isianLama = {};
+  rvGroups.forEach((g,i)=>{ const el = $('rvJudul'+i); if(el) isianLama[g.judul] = el.value; });
+  const tercentangLama = {};
+  rvGroups.forEach((g,i)=>{
+    const boxes = document.querySelectorAll('.rvChk'+i);
+    if(boxes.length) tercentangLama[g.judul] =
+      [...boxes].filter(c=>!c.checked).map(c=>c.value);
+  });
+
+  const map = {};
+  yatim.forEach(b=>{ (map[b.judul] = map[b.judul] || []).push(b); });
+  rvGroups = Object.keys(map).sort().map(j=>({ judul:j, copies:map[j] }));
+
+  const semuaGrup = rvGroups.length;
+  rvGroups = rvGroups.slice(0, rvLimit);
+  $('rvMoreWrap').style.display = semuaGrup > rvLimit ? '' : 'none';
+
+  $('rvList').innerHTML = rvGroups.map((g,i)=>{
+    const placeholder = /^\(|belum diset/i.test(g.judul);
+    return `<div class="rank" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div>
+        <b>${esc(g.judul)}</b>
+        <span class="badge ${placeholder?'b-red':'b-orange'}">${g.copies.length} eksemplar</span>
+        ${placeholder?'<span class="badge b-gray">judul belum diisi</span>':''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px">
+        ${g.copies.map(c=>`<label style="display:flex;align-items:center;gap:5px;background:#fff;border:2px solid var(--line);border-radius:8px;padding:3px 7px">
+          <input type="checkbox" class="rvChk${i}" value="${c.id}" checked style="width:auto">
+          <code>${esc(c.kode)}</code>
+          <small style="color:#4a6bb5">${c.tanggalMasuk?fmtDate(c.tanggalMasuk):'-'}${c.lokasi?' · '+esc(c.lokasi):''}</small>
+        </label>`).join('')}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <input id="rvJudul${i}" list="dlTitles" placeholder="Judul yang benar untuk buku ini"
+               value="${esc(isianLama[g.judul] !== undefined ? isianLama[g.judul] : (placeholder?'':g.judul))}"
+               style="flex:1;min-width:220px">
+        <button class="btn small green" onclick="rvTentukan(${i})">✅ Tentukan Judul</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // kembalikan centang yang tadi dilepas petugas
+  rvGroups.forEach((g,i)=>{
+    (tercentangLama[g.judul]||[]).forEach(id=>{
+      const el = [...document.querySelectorAll('.rvChk'+i)].find(c=>c.value===id);
+      if(el) el.checked = false;
+    });
+  });
+}
+
+async function rvTentukan(i){
+  const g = rvGroups[i]; if(!g) return;
+  const judul = $('rvJudul'+i).value.trim().toUpperCase();
+  if(!judul){ toast('⚠️ Isi dulu judul yang benar'); return; }
+  const ids = [...document.querySelectorAll('.rvChk'+i+':checked')].map(c=>c.value);
+  if(!ids.length){ toast('⚠️ Centang minimal satu eksemplar'); return; }
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online.'); return; }
+
+  const t = findTitleByJudul(judul);
+  const pesan = t
+    ? `${ids.length} eksemplar akan ditautkan ke judul yang sudah ada:\n"${t.judul}"`
+    : `Judul baru "${judul}" akan dibuat, lalu ${ids.length} eksemplar ditautkan ke sana.`;
+  if(!confirm(pesan+'\n\nLanjutkan?')) return;
+
+  try{
+    const titleId = t ? t.id : (await LibraryAPI.createTitle({ judul })).id;
+    await LibraryAPI.assignTitle(ids, titleId);
+    await muatUlangInventaris();
+    toast('✅ '+ids.length+' eksemplar sudah punya judul');
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
+/* =================== LABEL QR EKSEMPLAR ===================
+   Payload QR = books.kode dan HANYA itu. Kode bersifat immutable, jadi label
+   yang sudah tertempel tetap sah walau judul diperbaiki, buku pindah rak,
+   sumber diisi, kondisi berubah, atau status jadi hilang/rusak/ditarik.
+   Tidak ada data siswa, token, atau apa pun yang sensitif di dalamnya.
+
+   QR dibuat di browser dari kode yang sudah ada di memori — nol permintaan
+   jaringan, walau petugas mencetak 100 label sekaligus. Gambarnya juga tidak
+   disimpan di mana pun: selalu bisa dibuat ulang dari kode. */
+
+let nbBaruDibuat = [];              // id eksemplar hasil penambahan terakhir
+const bTerpilih = new Set();        // id eksemplar yang dicentang di inventaris
+
+/* qrcodejs menulis ke elemen; hasilnya bisa <img> atau <canvas> tergantung browser. */
+function qrDataUrl(teks){
+  const tmp = document.createElement('div');
+  tmp.style.display = 'none';
+  document.body.appendChild(tmp);
+  new QRCode(tmp, { text: teks, width: 240, height: 240,
+    colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  const img = tmp.querySelector('img'), cv = tmp.querySelector('canvas');
+  const src = (img && img.getAttribute('src')) ? img.src : (cv ? cv.toDataURL('image/png') : '');
+  tmp.remove();
+  return src;
+}
+
+function labelHTML(b, src){
+  const judul = (b.judul || '').slice(0, 60);
+  return `<div class="label">
+    <div class="merek">SUPAT LIBRARY</div>
+    ${src ? `<img class="qr" src="${src}" alt="">` : '<div class="qr"></div>'}
+    <div class="kode">${esc(b.kode)}</div>
+    <div class="judul">${esc(judul)}</div>
+  </div>`;
+}
+
+/* Jendela terpisah, bukan menyembunyikan halaman utama dengan CSS:
+   isinya bersih total, tanpa navbar/kartu/tombol yang ikut tercetak. */
+function cetakLabelQR(ids){
+  if(!ids || !ids.length){ toast('⚠️ Pilih dulu buku yang mau dicetak labelnya'); return; }
+  if(ids.length > 300){ toast('⚠️ Maksimal 300 label sekali cetak. Pilih lebih sedikit dulu.'); return; }
+  if(typeof QRCode === 'undefined'){
+    toast('❌ Pembuat QR belum termuat. Butuh internet saat pertama membuka aplikasi.'); return;
+  }
+
+  const daftar = ids.map(id => DB.books.find(b => b.id === id)).filter(Boolean);
+  if(!daftar.length){ toast('⚠️ Data buku tidak ditemukan — muat ulang halaman.'); return; }
+
+  toast('⏳ Menyiapkan ' + daftar.length + ' label...');
+  const labels = daftar.map(b => labelHTML(b, qrDataUrl(b.kode))).join('');
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if(!w){ toast('⚠️ Jendela cetak diblokir browser. Izinkan popup untuk situs ini.'); return; }
+  w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8">
+<title>Label QR Buku — SUPAT LIBRARY</title>
+<style>
+  /* 3 kolom x 6 baris = 18 label per halaman A4, cukup lega untuk digunting */
+  @page { size: A4 portrait; margin: 8mm; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; color:#000; background:#fff; }
+  .bar{ padding:10px 14px; background:#1B3B8F; color:#fff; display:flex;
+        align-items:center; justify-content:space-between; gap:12px; }
+  .bar button{ font:inherit; font-weight:700; padding:7px 14px; border:0; border-radius:8px;
+               background:#fff; color:#1B3B8F; cursor:pointer; }
+  .petunjuk{ padding:8px 14px; font-size:12.5px; background:#eef3ff; color:#1B3B8F; }
+  .lembar{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0; padding:0; }
+  /* Tinggi 45mm dihitung agar SEMUA isi muat: merek + QR 20mm + kode + 2 baris judul.
+     6 baris x 45mm = 270mm, masih di dalam A4 (281mm setelah margin 8mm). */
+  .label{ border:1px dashed #999; padding:3.5mm 3mm; text-align:center;
+          height:45mm; display:flex; flex-direction:column; align-items:center;
+          justify-content:flex-start; break-inside:avoid; page-break-inside:avoid; overflow:hidden; }
+  .merek{ font-size:7pt; font-weight:700; letter-spacing:.06em; color:#1B3B8F; margin-bottom:1mm; }
+  .qr{ width:20mm; height:20mm; display:block; image-rendering:pixelated; flex:none; }
+  .kode{ font-family:'Courier New',monospace; font-size:9.5pt; font-weight:700;
+         letter-spacing:.03em; margin-top:1.2mm; }
+  /* tinggi tetap 2 baris tanpa bergantung pada -webkit-line-clamp, yang tidak
+     selalu diterapkan saat rendering ke printer */
+  .judul{ font-size:6.5pt; line-height:1.2; margin-top:1mm; width:100%;
+          height:2.4em; overflow:hidden; word-break:break-word; }
+  @media print{
+    .bar, .petunjuk{ display:none !important; }
+    .label{ border:1px dashed #bbb; }
+  }
+</style></head><body>
+<div class="bar">
+  <span><b>${daftar.length} label</b> siap dicetak — potong mengikuti garis putus-putus.</span>
+  <button onclick="window.print()">🖨️ Cetak</button>
+</div>
+<div class="petunjuk">
+  Pastikan pengaturan printer: ukuran <b>A4</b>, skala <b>100%</b> (jangan "fit to page"),
+  dan matikan header/footer browser agar QR tidak mengecil.
+</div>
+<div class="lembar">${labels}</div>
+<script>window.onload=function(){ setTimeout(function(){ window.print(); }, 250); };<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+function cetakLabelTerpilih(){ cetakLabelQR([...bTerpilih]); }
+function cetakLabelBaruDibuat(){ cetakLabelQR(nbBaruDibuat); }
+function cetakLabelSatu(id){ cetakLabelQR([id]); }
+
+/* ---------- pilihan di tabel inventaris ---------- */
+function bTogglePilih(id, on){
+  if(on) bTerpilih.add(id); else bTerpilih.delete(id);
+  bRenderAksiBar();
+}
+function bTogglePilihSemua(on){
+  bBarisTampil.forEach(id => on ? bTerpilih.add(id) : bTerpilih.delete(id));
+  renderBooks();
+}
+function bBersihkanPilihan(){ bTerpilih.clear(); renderBooks(); }
+function bRenderAksiBar(){
+  const bar = $('bAksiBar'); if(!bar) return;
+  bar.style.display = bTerpilih.size ? 'flex' : 'none';
+  $('bPilihInfo').textContent = bTerpilih.size + ' buku dipilih';
+  const semua = $('bPilihSemua');
+  if(semua) semua.checked = bBarisTampil.length > 0 && bBarisTampil.every(id => bTerpilih.has(id));
+}
+
+/* ---------- INVENTARIS ---------- */
+let bBarisTampil = [];   // id eksemplar yang sedang tampil, untuk "pilih semua"
 function renderBooks(){
-  const q = $('bSearch').value.toLowerCase(), fs = $('bFilterStok').value;
-  let rows = DB.books.filter(b =>
-    (!q || b.judul.toLowerCase().includes(q) || String(b.kode).toLowerCase().includes(q)) &&
-    (!fs || (fs==='ada' ? b.tersedia>0 : b.tersedia<=0)));
-  $('bCount').textContent = rows.length + ' judul';
-  $('bookTable').innerHTML = rows.slice(0,bookLimit).map(b=>`<tr>
-    <td><b>${esc(b.kode)}</b></td><td>${esc(b.judul)}${b.pengarang?'<br><small style="color:#4a6bb5">'+esc(b.pengarang)+'</small>':''}</td>
-    <td>${esc(b.kategori)||'-'}</td><td>${b.jumlah}</td>
-    <td><span class="badge ${b.tersedia>0?'b-green':'b-red'}">${b.tersedia>0? b.tersedia+' ada' : 'dipinjam'}</span></td>
-    <td><button class="icon-btn" onclick="editBook('${b.id}')">✏️</button>
-        <button class="icon-btn" onclick="delBook('${b.id}')">🗑️</button></td></tr>`).join('')
-    || '<tr><td colspan="6" style="text-align:center;padding:20px">Katalog kosong. Tambahkan buku ⬆️</td></tr>';
+  const q  = ($('bSearch').value||'').toLowerCase().trim();
+  const fs = $('bFilterStatus').value, fk = $('bFilterKondisi').value;
+  const fu = $('bFilterSumber').value, fn = $('bFilterNoTitle').checked;
+  const titleById = {}; DB.titles.forEach(t=>titleById[t.id]=t);
+
+  const rows = DB.books.filter(b=>{
+    if(fs && (b.statusCopy||'AVAILABLE')!==fs) return false;
+    if(fk && (b.kondisi||'BAIK')!==fk) return false;
+    if(fu === '__kosong__'){ if(b.sumber) return false; } else if(fu && b.sumber!==fu) return false;
+    if(fn && b.titleId) return false;
+    if(!q) return true;
+    const t = b.titleId ? titleById[b.titleId] : null;
+    return String(b.kode).toLowerCase().includes(q)
+      || (b.judul||'').toLowerCase().includes(q)
+      || (b.pengarang||'').toLowerCase().includes(q)
+      || (b.lokasi||'').toLowerCase().includes(q)
+      || (t && (t.isbn||'').toLowerCase().includes(q));
+  });
+
+  const judulUnik = new Set(rows.map(b=>b.titleId || ('~'+b.judul))).size;
+  $('bCount').textContent = rows.length + ' eksemplar · ' + judulUnik + ' judul';
+
+  const tampil = rows.slice(0, bookLimit);
+  bBarisTampil = tampil.map(b=>b.id);
+
+  $('bookTable').innerHTML = tampil.map(b=>`<tr>
+    <td><input type="checkbox" style="width:auto" ${bTerpilih.has(b.id)?'checked':''}
+        onclick="bTogglePilih('${b.id}', this.checked)"></td>
+    <td><b style="font-family:monospace">${esc(b.kode)}</b></td>
+    <td>${esc(b.judul)}
+      ${b.pengarang?'<br><small style="color:#4a6bb5">'+esc(b.pengarang)+'</small>':''}
+      ${!b.titleId?'<br><span class="badge b-orange">judul belum dipastikan</span>':''}</td>
+    <td>${esc(b.lokasi)||'-'}</td>
+    <td>${esc(b.sumber)||'<i style="color:#999">belum didata</i>'}</td>
+    <td>${KONDISI_LABEL[b.kondisi]||b.kondisi||'-'}</td>
+    <td>${statusCopyBadge(b.statusCopy)}</td>
+    <td><button class="icon-btn" title="Cetak label QR buku ini" onclick="cetakLabelSatu('${b.id}')">🏷️</button>
+        <button class="icon-btn" title="Ubah data buku" onclick="ubahBuku('${b.id}')">✏️</button></td></tr>`).join('')
+    || '<tr><td colspan="8" style="text-align:center;padding:20px">Tidak ada buku yang cocok dengan pencarian.</td></tr>';
   $('bMoreBtn').style.display = rows.length > bookLimit ? '' : 'none';
+  bRenderAksiBar();
 }
-['bSearch','bFilterStok'].forEach(i=>$(i).addEventListener('input',()=>{bookLimit=50;renderBooks();}));
+['bSearch','bFilterStatus','bFilterKondisi','bFilterSumber','bFilterNoTitle']
+  .forEach(i=>$(i).addEventListener('input',()=>{bookLimit=50;renderBooks();}));
+$('nbJudul').addEventListener('input', nbCekJudul);
+$('nbCoverFile').addEventListener('change', e=>chooseCover('nb', e.target.files[0]));
+$('ubCoverFile').addEventListener('change', e=>chooseCover('ub', e.target.files[0]));
 
 /* =================== AUTOCOMPLETE =================== */
 function setupAC(inputId, listId, hiddenId, getItems, labelFn){
@@ -2121,7 +2734,10 @@ async function saveLoan(){
   toast('✅ Peminjaman tercatat!');
 }
 async function returnLoan(id){
-  const l = DB.loans.find(x=>x.id===id); if(!l || l.kembali) return;
+  const l = DB.loans.find(x=>x.id===id);
+  // jangan pernah diam: petugas menekan tombol dan harus tahu hasilnya
+  if(!l){ toast('⚠️ Data pinjaman tidak ditemukan — muat ulang halaman.'); return; }
+  if(l.kembali){ toast('ℹ️ Buku ini sudah dikembalikan.'); return; }
   if(SB_ENABLED){
     try{ const upd = await LibraryAPI.returnLoan(id); Object.assign(l, upd); }
     catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; }
@@ -2378,7 +2994,13 @@ function renderAttendanceHistory(){
 function renderDashboard(){
   $('stAnggota').textContent = DB.members.filter(m=>m.status==='Anggota').length;
   $('stNon').textContent = DB.members.filter(m=>m.status==='Non-Anggota').length;
+  // eksemplar fisik vs judul adalah dua angka berbeda; jangan disamakan
   $('stBuku').textContent = DB.books.length;
+  const sj = $('stJudul');
+  if(sj){
+    const nJudul = new Set(DB.books.map(b=>b.titleId || ('~'+b.judul))).size;
+    sj.textContent = nJudul + ' judul';
+  }
   const active = DB.loans.filter(l=>!l.kembali);
   $('stPinjam').textContent = active.length;
   const late = active.filter(l=>loanStatus(l)==='TERLAMBAT-AKTIF');
@@ -2408,6 +3030,7 @@ function topList(counts, el, unit){
   const arr = Object.values(counts).sort((a,b)=>b.n-a.n).slice(0,10);
   $(el).innerHTML = arr.map((x,i)=>`<div class="rank">
     <div class="medal">${i<3?['🥇','🥈','🥉'][i]:(i+1)}</div>
+    ${x.coverUrl ? bookCoverHTML(x.coverUrl, '📖', 'rank-cover') : ''}
     <div class="info"><b>${esc(x.label)}</b><span>${esc(x.sub)}</span></div>
     <div class="count">${x.n}<small style="font-size:11px">${unit}</small></div></div>`).join('')
     || '<p style="padding:14px;text-align:center">Belum ada data untuk periode ini.</p>';
@@ -2434,11 +3057,14 @@ function renderStats(){
   // books: loans + reading visits
   const kc = {};
   DB.loans.filter(l=>inPeriod(l.pinjam)).forEach(l=>{
-    kc[l.judul] = kc[l.judul] || { label:l.judul, sub:'Kode: '+(l.kode||'-'), n:0 }; kc[l.judul].n++;
+    const copy = DB.books.find(b=>b.id===l.bookId || b.kode===l.kode);
+    const title = copy && DB.titles.find(t=>t.id===copy.titleId);
+    kc[l.judul] = kc[l.judul] || { label:l.judul, sub:'Kode: '+(l.kode||'-'), coverUrl:title&&title.coverUrl, n:0 }; kc[l.judul].n++;
   });
   DB.visits.filter(v=>inPeriod(v.tgl) && v.buku).forEach(v=>{
     const j = v.buku.toUpperCase();
-    kc[j] = kc[j] || { label:j, sub:'dibaca di tempat', n:0 }; kc[j].n++;
+    const title = DB.titles.find(t=>(t.judul||'').toUpperCase()===j);
+    kc[j] = kc[j] || { label:j, sub:'dibaca di tempat', coverUrl:title&&title.coverUrl, n:0 }; kc[j].n++;
   });
   topList(kc, 'topBooks', 'x');
   // per class
@@ -2625,7 +3251,12 @@ function memberRowObj(m,i){ return { NO:i+1, STUDENT_ID:m.id, BARCODE_ID:m.barco
   'TAHUN AJARAN':m.tahunAjaran||'', STATUS:m.status, 'STATUS SISWA':m.lifecycle||'AKTIF' }; }
 function memberRows(){ return DB.members.filter(m=>!isArchived(m)).map((m,i)=>memberRowObj(m,i)); }
 function archiveRows(){ return DB.members.filter(isArchived).map((m,i)=>memberRowObj(m,i)); }
-function bookRows(){ return DB.books.map((b,i)=>({ NO:i+1, 'KODE BUKU':b.kode, 'JUDUL BUKU':b.judul, PENGARANG:b.pengarang||'', PENERBIT:b.penerbit||'', TAHUN:b.tahun||'', KATEGORI:b.kategori||'', JUMLAH:b.jumlah, TERSEDIA:b.tersedia })); }
+function bookRows(){ return DB.books.map((b,i)=>{
+  const t = b.titleId ? DB.titles.find(x=>x.id===b.titleId) : null;
+  return { NO:i+1, 'KODE BUKU':b.kode, 'JUDUL BUKU':b.judul, PENGARANG:b.pengarang||'',
+    PENERBIT:b.penerbit||'', TAHUN:b.tahun||'', ISBN: t?(t.isbn||''):'', KATEGORI:b.kategori||'',
+    SUMBER:b.sumber||'', 'TANGGAL MASUK':b.tanggalMasuk||'', 'LOKASI/RAK':b.lokasi||'',
+    KONDISI:b.kondisi||'', STATUS:b.statusCopy||'', TERSEDIA:b.tersedia }; }); }
 function loanRows(){ return DB.loans.map(l=>{ const m=DB.members.find(x=>x.id===l.memberId)||{}; return { STUDENT_ID:l.memberId||'', BARCODE_ID:m.barcodeId||'', NAMA:l.nama, KELAS:l.kelas, 'JENIS KELAMIN':l.jk||'', 'NO ANGGOTA':l.noAnggota, 'KODE BUKU':l.kode, 'JUDUL BUKU':l.judul, PINJAM:l.pinjam, 'BATAS KEMBALI':l.batas, DIKEMBALIKAN:l.kembali||'', STATUS:loanStatus(l).replace('-AKTIF',''), SANKSI:l.sanksi||'-' }; }); }
 function karyaRows(){ return DB.karya.map(k=>({ TANGGAL:k.tgl, NAMA:k.nama, KELAS:k.kelas||'', JENIS:k.jenis, 'JUDUL KARYA':k.judul, ISI:k.isi||'', SUKA:k.suka||0 })); }
 function ebookRows(){ return DB.ebooks.map(e=>({ JUDUL:e.judul, PENGARANG:e.pengarang||'', KATEGORI:e.kategori||'', SUMBER:e.mode==='link'?(e.url||''):('File: '+(e.fileName||'')), 'DIBACA (x)':e.dibaca||0 })); }
@@ -2646,7 +3277,10 @@ function exportAll(){
 }
 const TEMPLATES = {
   anggota: [{ NAMA:'CONTOH NAMA SISWA', KELAS:'5', ROMBEL:'A', 'JENIS KELAMIN':'L', TIPE:'Siswa', NIS:'', NISN:'', 'NO ANGGOTA':'25010900001', BARCODE_ID:'', 'STATUS SISWA':'AKTIF', 'TAHUN AJARAN':'2026/2027' }],
-  katalog: [{ 'KODE BUKU':'20260101001', 'JUDUL BUKU':'CONTOH JUDUL BUKU', PENGARANG:'Nama Pengarang', PENERBIT:'Nama Penerbit', TAHUN:'2026', KATEGORI:'Fiksi', JUMLAH:1 }],
+  // Tanpa kolom KODE BUKU: kode tiap eksemplar dibuat server agar tidak pernah bentrok.
+  katalog: [{ 'JUDUL BUKU':'CONTOH JUDUL BUKU', PENGARANG:'Nama Pengarang', PENERBIT:'Nama Penerbit',
+    TAHUN:'2026', ISBN:'', KATEGORI:'Fiksi', 'UNTUK KELAS':'4', JUMLAH:3,
+    SUMBER:'BOS', 'LOKASI/RAK':'Rak A-01', KONDISI:'BAIK', 'TANGGAL MASUK':'2026-09-25' }],
   peminjaman: [{ NAMA:'CONTOH NAMA', KELAS:'5A', 'JENIS KELAMIN':'L', 'NO ANGGOTA':'25010900001', 'KODE BUKU':'20260101001', 'JUDUL BUKU':'CONTOH JUDUL', PINJAM:'2026-07-01', 'BATAS KEMBALI':'2026-07-04', DIKEMBALIKAN:'2026-07-03' }],
   absensi: [{ NAMA:'CONTOH NAMA', KELAS:'5A', TANGGAL:'2026-07-01', JAM:'09:30', AKTIVITAS:'Membaca', 'JUDUL BUKU':'', KETERANGAN:'' }]
 };
@@ -2664,6 +3298,46 @@ function excelDate(v){
   if(m) return m[3]+'-'+pad(m[2])+'-'+pad(m[1]);
   return s;
 }
+/* Impor katalog massal. Satu baris Excel = satu judul + N eksemplar.
+   Kode TIDAK diambil dari file: server yang membuatkannya, supaya tidak pernah
+   bentrok dengan kode yang sudah tercetak maupun dengan petugas lain yang
+   menyimpan di saat bersamaan. */
+async function importKatalog(rows){
+  if(!SB_ENABLED){ toast('⚠️ Impor katalog butuh koneksi database online.'); return; }
+  const tugas = [];
+  rows.forEach(r=>{
+    const g = k => String(r[k] ?? '').trim();
+    const judul = g('JUDUL BUKU').toUpperCase(); if(!judul) return;
+    let jml = parseInt(g('JUMLAH'))||1; jml = Math.min(200, Math.max(1, jml));
+    tugas.push({ judul, pengarang:g('PENGARANG'), penerbit:g('PENERBIT'), tahun:g('TAHUN'),
+      isbn:g('ISBN'), kategori:g('KATEGORI'), levelKelas:g('UNTUK KELAS'),
+      sumber:g('SUMBER')||null, lokasi:g('LOKASI/RAK'),
+      kondisi:(g('KONDISI')||'BAIK').toUpperCase(),
+      tanggalMasuk: excelDate(r['TANGGAL MASUK']) || todayStr(), jumlah:jml });
+  });
+  if(!tugas.length){ toast('⚠️ Tidak ada baris berisi JUDUL BUKU'); return; }
+  if(!confirm('Impor '+tugas.length+' judul dari file ini?\n\nSistem akan membuatkan kode untuk setiap eksemplar.')) return;
+
+  let judulOk=0, copyOk=0; const gagal=[];
+  for(let i=0;i<tugas.length;i++){
+    const t = tugas[i];
+    // judul yang sudah ada dipakai ulang, tidak dibuat ganda
+    const ada = findTitleByJudul(t.judul);
+    try{
+      const dibuat = await LibraryAPI.addBookCopies(ada ? {...t, titleId:ada.id} : t);
+      judulOk++; copyOk += dibuat.length;
+      if(!ada) DB.titles = await LibraryAPI.pullTitles();   // agar baris berikutnya mengenali judul ini
+    }catch(e){ gagal.push(t.judul+' → '+LibraryAPI.msg(e)); }
+    if(i%10===0) toast('⏳ Impor '+(i+1)+'/'+tugas.length+'...');
+  }
+  await muatUlangInventaris();
+  $('importFile').value='';
+  let pesan = 'IMPOR KATALOG SELESAI\n\n  • Judul diproses : '+judulOk+'\n  • Eksemplar dibuat: '+copyOk;
+  if(gagal.length){ pesan += '\n\n  ⚠️ '+gagal.length+' baris gagal:\n    - '+gagal.slice(0,15).join('\n    - '); }
+  alert(pesan);
+  toast(gagal.length ? '⚠️ Impor selesai, sebagian gagal' : '✅ Impor katalog selesai');
+}
+
 function importData(){
   const f = $('importFile').files[0];
   if(!f){ toast('⚠️ Pilih file .xlsx dulu'); return; }
@@ -2673,6 +3347,7 @@ function importData(){
     try{
       const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      if(type==='katalog'){ importKatalog(rows); return; }
       let added = 0, skipped = 0;
       rows.forEach(r=>{
         const g = k => String(r[k] ?? r[k?.toLowerCase()] ?? '').trim();
@@ -2688,11 +3363,8 @@ function importData(){
             barcodeId:bc, lifecycle:(g('STATUS SISWA').toUpperCase()||'AKTIF'), tahunAjaran:g('TAHUN AJARAN')||DB.settings.tahunAjaran||'',
             status: no?'Anggota':'Non-Anggota' }); added++;
         } else if(type==='katalog'){
-          const kode = g('KODE BUKU'), judul = g('JUDUL BUKU').toUpperCase(); if(!judul) return;
-          if(kode && DB.books.some(b=>String(b.kode)===kode)){ skipped++; return; }
-          const jml = parseInt(g('JUMLAH'))||1;
-          DB.books.push({ id:'B'+String(DB.seq.b++).padStart(4,'0'), kode, judul, pengarang:g('PENGARANG'),
-            penerbit:g('PENERBIT'), tahun:g('TAHUN'), kategori:g('KATEGORI'), jumlah:jml, tersedia:jml }); added++;
+          // ditangani terpisah lewat importKatalog(): butuh generator kode di server
+          return;
         } else if(type==='peminjaman'){
           const nama = g('NAMA').toUpperCase(); if(!nama) return;
           const pinjam = excelDate(r['PINJAM']); if(!pinjam) return;
@@ -2962,6 +3634,7 @@ function applyThumb(){
 
 /* =================== INIT =================== */
 function renderAll(){
+  renderTitleDatalist(); renderReviewJudul();
   renderMembers(); renderBooks(); renderLoans(); renderActiveLoans(); renderVisits(); renderDashboard(); renderStats(); renderEbooks(); renderKarya();
   $('gsUrl').value = DB.settings.gsUrl||''; $('gsAuto').checked = !!DB.settings.gsAuto;
   $('taInput').value = DB.settings.tahunAjaran||'';
@@ -2976,21 +3649,36 @@ async function sbBoot(){
   sbSetAuthUI(user);
   if(user) await sbLoadAll();
 }
+/* Refresh realtime harus BERURUTAN, tidak boleh tumpang-tindih.
+   Menambah 20 eksemplar memicu 20 event; bila tiap event menarik ulang seluruh
+   tabel secara paralel, snapshot yang start lebih dulu bisa selesai belakangan
+   dan MENIMPA data yang baru saja ditulis petugas (pinjaman baru sempat hilang
+   dari layar). Sekaligus menghemat kuota: 20 event cukup 1 tarikan + 1 susulan. */
+let _rtSibuk = false, _rtTertunda = false;
+async function sbRealtimeRefresh(){
+  if(_rtSibuk){ _rtTertunda = true; return; }
+  _rtSibuk = true;
+  try{
+    const [books, loans, titles] = await Promise.all([
+      LibraryAPI.pullBooks(), LibraryAPI.pullLoans(), LibraryAPI.pullTitles() ]);
+    DB.books = books; DB.loans = loans; DB.titles = titles;
+    saveDB();
+    renderTitleDatalist(); renderReviewJudul();
+    renderBooks(); renderActiveLoans(); renderLoans(); renderDashboard(); renderStats();
+  }catch(e){ console.error('realtime refresh', e); }
+  finally{
+    _rtSibuk = false;
+    if(_rtTertunda){ _rtTertunda = false; sbRealtimeRefresh(); }  // pastikan state akhir selalu tersusul
+  }
+}
+
 async function sbLoadAll(){
   try{
-    const [members, books, loans] = await Promise.all([
-      LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans() ]);
-    DB.members = members; DB.books = books; DB.loans = loans;
+    const [members, books, loans, titles] = await Promise.all([
+      LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans(), LibraryAPI.pullTitles() ]);
+    DB.members = members; DB.books = books; DB.loans = loans; DB.titles = titles;
     saveDB(); renderAll();
-    if(!window._sbSub){
-      window._sbSub = LibraryAPI.subscribe(async ()=>{
-        try{
-          DB.books = await LibraryAPI.pullBooks();
-          DB.loans = await LibraryAPI.pullLoans();
-          renderBooks(); renderActiveLoans(); renderLoans(); renderDashboard(); renderStats();
-        }catch(e){ console.error('realtime refresh', e); }
-      });
-    }
+    if(!window._sbSub){ window._sbSub = LibraryAPI.subscribe(sbRealtimeRefresh); }
   }catch(e){ toast('❌ Muat data pusat: '+LibraryAPI.msg(e)); }
 }
 // Status DB online yang JELAS — jangan sampai petugas mengira data online padahal lokal.
@@ -3125,9 +3813,7 @@ async function pubBoot(){
     if(g){
       if(pop && pop.length){
         g.innerHTML = pop.map((b,i)=>`<div class="pub-book-card">
-          <div class="book-cover" style="font-size:20px;font-weight:900;background:${i===0?'#ffd43b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--sky)'}">
-            ${i===0?'🥇':i===1?'🥈':i===2?'🥉':'📖'}
-          </div>
+          ${b.coverUrl ? bookCoverHTML(b.coverUrl, '📖') : `<div class="book-cover" style="font-size:20px;font-weight:900;background:${i===0?'#ffd43b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--sky)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'📖'}</div>`}
           <div class="book-details">
             <h4>${esc(b.judul)}</h4>
             <p>Kode: ${esc(b.kode)}</p>
@@ -3163,7 +3849,7 @@ function pubBuildCategories(){
 }
 function pubBookCard(b){
   const ada=(b.tersedia||0)>0;
-  return `<div class="pub-book-card"><div class="book-cover">📖</div><div class="book-details">
+  return `<div class="pub-book-card">${bookCoverHTML(b.coverUrl)}<div class="book-details">
     <span class="badge ${ada?'b-green':'b-orange'}">${ada?'Tersedia':'Sedang Dipinjam'}</span>
     <h4>${esc(b.judul)}</h4>
     <p>${b.pengarang?esc(b.pengarang)+' · ':''}Kode: ${esc(b.kode)}${b.kategori?' · '+esc(b.kategori):''}${b.tahun?' · '+esc(b.tahun):''}</p>
@@ -3274,7 +3960,8 @@ function renderStudentArea(d){
   const lifeBadge = d.lifecycle==='AKTIF' ? 'b-green' : 'b-gray';
   const activeHtml = active.length ? active.map(l=>{
     const overdue = todayStr() > (l.batas||'');
-    return `<div class="pub-book-card" style="margin:10px 0"><div class="book-cover">📖</div><div class="book-details">
+    const found = PUB.books.find(b=>b.kode===l.kode || b.judul===l.judul);
+    return `<div class="pub-book-card" style="margin:10px 0">${bookCoverHTML(found&&found.coverUrl)}<div class="book-details">
       <span class="badge ${overdue?'b-red':'b-orange'}">${overdue?'⏰ Terlambat':'Sedang Dipinjam'}</span>
       <h4>${esc(l.judul||'-')}</h4>
       <p>Tgl Pinjam: <b>${fmtDate(l.pinjam)}</b> · Batas Kembali: <b>${fmtDate(l.batas)}</b></p>
@@ -3302,9 +3989,13 @@ function renderStudentArea(d){
   await loadDB();
   $('gsCode').textContent = APPS_SCRIPT;
   $('lTgl').value = todayStr();
+  $('nbTanggal').value = todayStr();
   $('lBatasPreview').textContent = fmtDateLong(addDays(todayStr(),3));
   setupAC('lPeminjam','lPeminjamList','lPeminjamId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||'-')+')');
-  setupAC('lBuku','lBukuList','lBukuId', ()=>DB.books.filter(b=>b.tersedia>0), b=>b.judul+' ['+b.kode+']');
+  // hanya eksemplar yang benar-benar beredar: hilang/rusak/ditarik tidak boleh muncul
+  setupAC('lBuku','lBukuList','lBukuId',
+    ()=>DB.books.filter(b=>b.tersedia>0 && (b.statusCopy||'AVAILABLE')==='AVAILABLE'),
+    b=>b.judul+' ['+b.kode+']');
   setupAC('aNama','aNamaList','aId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   setupAC('kNama','kNamaList','kMemberId', ()=>DB.members, m=>m.nama+' ('+(m.kelas||m.tipe||'-')+')');
   renderAll();

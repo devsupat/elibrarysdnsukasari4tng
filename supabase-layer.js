@@ -28,6 +28,7 @@
   var hasLib = typeof global.supabase !== 'undefined' && global.supabase.createClient;
   var ENABLED = CONFIGURED && hasLib;                    // client bisa dibuat?
   var sb = ENABLED ? global.supabase.createClient(SB_CFG.url, SB_CFG.anonKey) : null;
+  var COVER_BUCKET = 'book-covers';
 
   // ---------- mapping: Supabase row <-> legacy JS shape ----------
   function rowToMem(r) {
@@ -42,9 +43,27 @@
       nisn: m.nisn || null, lifecycle: m.lifecycle || 'AKTIF', tahun_ajaran: m.tahunAjaran || null,
       status: m.status || null, legacy_id: (m.id && /^M\d/.test(m.id)) ? m.id : null };
   }
+  // 1 baris books = 1 eksemplar fisik. kode = identitas eksemplar itu (calon payload QR).
   function rowToBook(r) {
     return { id: r.id, kode: r.kode, judul: r.judul, pengarang: r.pengarang || '', penerbit: r.penerbit || '',
-      tahun: r.tahun || '', kategori: r.kategori || '', jumlah: r.jumlah, tersedia: r.tersedia };
+      tahun: r.tahun || '', kategori: r.kategori || '', jumlah: r.jumlah, tersedia: r.tersedia,
+      titleId: r.title_id || '', sumber: r.sumber || '', tanggalMasuk: r.tanggal_masuk || '',
+      lokasi: r.lokasi || '', kondisi: r.kondisi || 'BAIK', statusCopy: r.status_copy || 'AVAILABLE' };
+  }
+  function rowToTitle(r) {
+    return { id: r.id, judul: r.judul, pengarang: r.pengarang || '', penerbit: r.penerbit || '',
+      tahun: r.tahun || '', isbn: r.isbn || '', kategori: r.kategori || '', levelKelas: r.level_kelas || '',
+      coverPath: r.cover_path || '', coverUrl: r.cover_url || coverUrl(r.cover_path || '') };
+  }
+  function coverUrl(path) {
+    if (!path || !sb) return '';
+    return sb.storage.from(COVER_BUCKET).getPublicUrl(path).data.publicUrl || '';
+  }
+  function withTitleCover(book, title) {
+    if (!book) return book;
+    var t = title || {};
+    book.coverUrl = t.coverUrl || coverUrl(t.coverPath);
+    return book;
   }
   function bookToRow(b) {
     return { kode: String(b.kode), judul: b.judul, pengarang: b.pengarang || null, penerbit: b.penerbit || null,
@@ -66,6 +85,13 @@
     if (/ANGGOTA_TIDAK/.test(m)) return 'Anggota tidak ditemukan.';
     if (/duplicate key/.test(m) && /barcode/.test(m)) return 'Barcode ID sudah dipakai anggota lain.';
     if (/duplicate key/.test(m) && /kode/.test(m)) return 'Kode buku sudah ada di katalog.';
+    if (/books_satu_eksemplar_check/.test(m)) return 'Satu baris buku = satu eksemplar fisik. Pakai "Jumlah Eksemplar" agar sistem membuatkan beberapa eksemplar.';
+    if (/KODE_TIDAK_BOLEH_DIUBAH/.test(m)) return 'Kode eksemplar tidak dapat diubah — label QR-nya sudah tertempel di buku.';
+    if (/JUDUL_WAJIB_DIISI/.test(m)) return 'Judul buku wajib diisi.';
+    if (/JUDUL_TIDAK_DITEMUKAN/.test(m)) return 'Judul tidak ditemukan — muat ulang halaman.';
+    if (/JUMLAH_COPY_TIDAK_VALID/.test(m)) return 'Jumlah eksemplar harus antara 1 sampai 200.';
+    if (/MASIH_DIPINJAM/.test(m)) return 'Eksemplar ini sedang dipinjam. Proses pengembaliannya dulu.';
+    if (/EKSEMPLAR_TIDAK_DITEMUKAN/.test(m)) return 'Eksemplar tidak ditemukan.';
     if (/row-level security|permission denied/.test(m)) return 'Akses ditolak — login sebagai petugas dulu.';
     return m;
   }
@@ -125,7 +151,13 @@
 
     // ---------- PUBLIC (anon) ----------
     // Catalog is public (RLS books_read_all). Paginated so ALL rows load, not capped at 1000.
-    async publicBooks() { return (await this._pullAll('books', 'judul', true)).map(rowToBook); },
+    async publicBooks() {
+      var rows = await this._pullAll('books', 'judul', true);
+      var titles = await this.publicTitles();
+      var byId = {}; titles.forEach(function (t) { byId[t.id] = t; });
+      return rows.map(function (r) { return withTitleCover(rowToBook(r), byId[r.title_id]); });
+    },
+    async publicTitles() { return (await this._pullAll('titles', 'judul', true)).map(rowToTitle); },
     // Secure single-student lookup by access key (= barcode_id). RPC is SECURITY DEFINER; anon never
     // touches the members/loans tables directly. Returns {found:false} or one minimal profile + own loans.
     async studentLookup(key) { return throwIf(await sb.rpc('student_lookup', { p_key: key })); },
@@ -156,6 +188,77 @@
     },
     async deleteBook(id) { throwIf(await sb.from('books').delete().eq('id', id)); },
 
+    // ---------- titles (bibliografi) ----------
+    async pullTitles() { return (await this._pullAll('titles', 'judul', true)).map(rowToTitle); },
+
+    // Satu operasi atomik: buat/pakai judul -> ambil N kode -> sisipkan N eksemplar.
+    // Kode dibuat server (counter per-tanggal), TIDAK PERNAH diketik petugas.
+    async addBookCopies(p) {
+      var rows = throwIf(await sb.rpc('add_book_copies', {
+        p_title_id: p.titleId || null, p_judul: p.judul || null,
+        p_pengarang: p.pengarang || null, p_penerbit: p.penerbit || null,
+        p_tahun: p.tahun || null, p_isbn: p.isbn || null,
+        p_kategori: p.kategori || null, p_level_kelas: p.levelKelas || null,
+        p_sumber: p.sumber || null, p_tanggal_masuk: p.tanggalMasuk || null,
+        p_lokasi: p.lokasi || null, p_kondisi: p.kondisi || 'BAIK',
+        p_jumlah: p.jumlah || 1
+      }));
+      return (rows || []).map(rowToBook);
+    },
+
+    // Bibliografi hanya diubah lewat titles; trigger menyalurkannya ke semua eksemplar.
+    async updateTitle(id, t) {
+      var row = { judul: (t.judul || '').toUpperCase(), pengarang: t.pengarang || null,
+        penerbit: t.penerbit || null, tahun: t.tahun || null, isbn: t.isbn || null,
+        kategori: t.kategori || null, level_kelas: t.levelKelas || null };
+      if (Object.prototype.hasOwnProperty.call(t, 'coverPath')) row.cover_path = t.coverPath || null;
+      return rowToTitle(throwIf(await sb.from('titles').update(row).eq('id', id).select().single()));
+    },
+    async createTitle(t) {
+      var row = { judul: (t.judul || '').toUpperCase(), pengarang: t.pengarang || null,
+        penerbit: t.penerbit || null, tahun: t.tahun || null, isbn: t.isbn || null,
+        kategori: t.kategori || null, level_kelas: t.levelKelas || null };
+      if (Object.prototype.hasOwnProperty.call(t, 'coverPath')) row.cover_path = t.coverPath || null;
+      return rowToTitle(throwIf(await sb.from('titles').insert(row).select().single()));
+    },
+    async uploadTitleCover(id, blob, oldPath) {
+      var path = id + '/' + Date.now() + '.webp';
+      var storage = sb.storage.from(COVER_BUCKET);
+      throwIf(await storage.upload(path, blob, { contentType: 'image/webp', upsert: false, cacheControl: '31536000' }));
+      try {
+        var row = throwIf(await sb.from('titles').update({ cover_path: path }).eq('id', id).select().single());
+        if (oldPath && oldPath !== path) { try { await storage.remove([oldPath]); } catch (_) {} }
+        return rowToTitle(row);
+      } catch (e) {
+        try { await storage.remove([path]); } catch (_) {}
+        throw e;
+      }
+    },
+    async removeTitleCover(id, path) {
+      var row = throwIf(await sb.from('titles').update({ cover_path: null }).eq('id', id).select().single());
+      if (path) { try { await sb.storage.from(COVER_BUCKET).remove([path]); } catch (_) {} }
+      return rowToTitle(row);
+    },
+
+    // Data inventaris melekat pada eksemplar, bukan pada judul. kode tidak ikut (immutable).
+    async updateCopy(id, c) {
+      var row = { sumber: c.sumber || null, tanggal_masuk: c.tanggalMasuk || null,
+        lokasi: c.lokasi || null, kondisi: c.kondisi || 'BAIK' };
+      return rowToBook(throwIf(await sb.from('books').update(row).eq('id', id).select().single()));
+    },
+
+    // Pengganti hapus: eksemplar tetap ada supaya histori peminjamannya tidak putus.
+    async setCopyStatus(id, status, catatan) {
+      var d = throwIf(await sb.rpc('set_copy_status',
+        { p_book_id: id, p_status: status, p_catatan: catatan || null }));
+      return rowToBook(Array.isArray(d) ? d[0] : d);
+    },
+
+    async assignTitle(bookIds, titleId) {
+      return throwIf(await sb.rpc('assign_title_to_copies',
+        { p_book_ids: bookIds, p_title_id: titleId }));
+    },
+
     // ---------- circulation (atomic on the server) ----------
     async borrow(bookId, memberId, pinjam) {
       var d = throwIf(await sb.rpc('borrow_book', { p_book_id: bookId, p_member_id: memberId, p_pinjam: pinjam }));
@@ -169,7 +272,15 @@
 
     // ---------- public (anon-safe aggregates) ----------
     async stats() { return throwIf(await sb.rpc('public_stats')); },
-    async popular(limit) { return throwIf(await sb.rpc('popular_books', { p_limit: limit || 10 })); },
+    async popular(limit) {
+      var rows = throwIf(await sb.rpc('popular_books', { p_limit: limit || 10 }));
+      var titles = await this.publicTitles(), byId = {}, byName = {};
+      titles.forEach(function (t) { byId[t.id] = t; byName[(t.judul || '').toUpperCase()] = t; });
+      return (rows || []).map(function (b) {
+        var t = byId[b.title_id] || byName[(b.judul || '').toUpperCase()];
+        return Object.assign({}, b, { coverUrl: t ? (t.coverUrl || coverUrl(t.coverPath)) : '' });
+      });
+    },
 
     // ---------- realtime: only books + loans ----------
     subscribe(onChange) {

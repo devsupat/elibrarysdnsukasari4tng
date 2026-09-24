@@ -76,7 +76,7 @@ begin
   if v_book is not null then
     begin
       insert into loans (member_id, book_id, nama, kode, judul, pinjam, batas)
-      values (v_mem, v_book, 'TES','TES','TES', current_date, current_date+3);
+      values (v_mem, v_book, 'TES','TES','TES', tanggal_lokal(), tanggal_lokal()+3);
       gagal:=gagal+1; r:=r||'N1  loan aktif kedua ditolak................. GAGAL (lolos!)'||chr(10);
     exception when others then ok:=ok+1; r:=r||'N1  loan aktif kedua ditolak................. LULUS'||chr(10); end;
   else
@@ -111,14 +111,14 @@ begin
      and not exists (select 1 from loans l where l.book_id=books.id and l.kembali is null) limit 1;
   select id into v_mem from members where tipe='Siswa' limit 1;
 
-  l1 := borrow_book(v_book, v_mem, current_date, 3);
+  l1 := borrow_book(v_book, v_mem, tanggal_lokal(), 3);
   if l1.status='BORROWED'
      and (select status_copy from books where id=v_book)='BORROWED'
      and (select tersedia from books where id=v_book)=0
   then ok:=ok+1; r:=r||'E1  pinjam menutup stok & menandai copy...... LULUS'||chr(10);
   else gagal:=gagal+1; r:=r||'E1  pinjam................................... GAGAL'||chr(10); end if;
 
-  begin perform borrow_book(v_book, v_mem, current_date, 3);
+  begin perform borrow_book(v_book, v_mem, tanggal_lokal(), 3);
     gagal:=gagal+1; r:=r||'E2  pinjam ganda ditolak..................... GAGAL'||chr(10);
   exception when others then ok:=ok+1; r:=r||'E2  pinjam ganda ditolak..................... LULUS'||chr(10); end;
 
@@ -133,7 +133,7 @@ begin
     gagal:=gagal+1; r:=r||'E4  kembali ganda ditolak.................... GAGAL'||chr(10);
   exception when others then ok:=ok+1; r:=r||'E4  kembali ganda ditolak.................... LULUS'||chr(10); end;
 
-  l1 := borrow_book(v_book, v_mem, current_date, 3);
+  l1 := borrow_book(v_book, v_mem, tanggal_lokal(), 3);
   if l1.status='BORROWED' then ok:=ok+1; r:=r||'E5  copy bisa dipinjam lagi.................. LULUS'||chr(10);
   else gagal:=gagal+1; r:=r||'E5  pinjam ulang............................. GAGAL'||chr(10); end if;
 
@@ -149,18 +149,18 @@ begin
   then ok:=ok+1; r:=r||'E7  cancel idempotent, stok tidak meledak.... LULUS'||chr(10);
   else gagal:=gagal+1; r:=r||'E7  cancel idempotent........................ GAGAL'||chr(10); end if;
 
-  l1 := borrow_book(v_book, v_mem, current_date, 3);
+  l1 := borrow_book(v_book, v_mem, tanggal_lokal(), 3);
   if l1.status='BORROWED' then ok:=ok+1; r:=r||'E8  pinjam setelah pembatalan................ LULUS'||chr(10);
   else gagal:=gagal+1; r:=r||'E8  pinjam pasca-batal....................... GAGAL'||chr(10); end if;
 
   perform return_book(l1.id);
   update books set status_copy='LOST' where id=v_book;
-  begin perform borrow_book(v_book, v_mem, current_date, 3);
+  begin perform borrow_book(v_book, v_mem, tanggal_lokal(), 3);
     gagal:=gagal+1; r:=r||'E9  copy LOST tidak bisa dipinjam............ GAGAL'||chr(10);
   exception when others then ok:=ok+1; r:=r||'E9  copy LOST tidak bisa dipinjam............ LULUS'||chr(10); end;
 
   update books set status_copy='AVAILABLE' where id=v_book;
-  l1 := borrow_book(v_book, v_mem, current_date - 10, 3);
+  l1 := borrow_book(v_book, v_mem, tanggal_lokal() - 10, 3);
   if (select status from loans where id=l1.id)='BORROWED'
      and (select status_efektif from loans_v where id=l1.id)='OVERDUE'
      and (select hari_terlambat from loans_v where id=l1.id)=7
@@ -201,7 +201,7 @@ begin
     gagal:=gagal+1; r:=r||'R5  anon tidak boleh menulis titles.......... GAGAL'||chr(10);
   exception when others then ok:=ok+1; r:=r||'R5  anon tidak boleh menulis titles.......... LULUS'||chr(10); end;
 
-  begin perform borrow_book(gen_random_uuid(), gen_random_uuid(), current_date, 3);
+  begin perform borrow_book(gen_random_uuid(), gen_random_uuid(), tanggal_lokal(), 3);
     gagal:=gagal+1; r:=r||'R6  anon tidak boleh meminjam................ GAGAL'||chr(10);
   exception when others then ok:=ok+1; r:=r||'R6  anon tidak boleh meminjam................ LULUS'||chr(10); end;
 
@@ -210,6 +210,118 @@ begin
   exception when others then gagal:=gagal+1; r:=r||'R7  statistik publik rusak................... GAGAL'||chr(10); end;
 
   reset role;
+
+  ---------------------------------------------------------------- BAGIAN 5
+  -- Master buku & inventaris eksemplar (Task 02).
+  ----------------------------------------------------------------
+  r := r || chr(10) || '-- 5. MASTER BUKU & INVENTARIS --' || chr(10);
+
+  select count(*) into n from books where jumlah <> 1;
+  if n=0 then ok:=ok+1; r:=r||'M1  1 baris books = 1 eksemplar fisik........ LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'M1  '||n||' baris ber-jumlah <> 1............ GAGAL'||chr(10); end if;
+
+  select count(*) into n from (select kode from books group by kode having count(*)>1) x;
+  if n=0 then ok:=ok+1; r:=r||'M2  kode eksemplar unik semua................ LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'M2  '||n||' kode dipakai lebih dari sekali... GAGAL'||chr(10); end if;
+
+  -- bibliografi eksemplar harus cermin judulnya
+  select count(*) into n from books b join titles t on t.id=b.title_id
+   where b.judul is distinct from t.judul;
+  if n=0 then ok:=ok+1; r:=r||'M3  judul eksemplar selaras dengan titles.... LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'M3  '||n||' eksemplar melenceng dari judul... GAGAL'||chr(10); end if;
+
+  select count(*) into n from reading_activities a
+   where not exists (select 1 from books b where b.id=a.book_id)
+      or not exists (select 1 from members m where m.id=a.member_id);
+  if n=0 then ok:=ok+1; r:=r||'M4  FK aktivitas membaca utuh................ LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'M4  '||n||' aktivitas tanpa relasi valid..... GAGAL'||chr(10); end if;
+
+  select count(*) into n from (select member_id, tanggal from visits
+                                group by member_id, tanggal having count(*)>1) x;
+  if n=0 then ok:=ok+1; r:=r||'M5  kunjungan tidak pernah ganda per hari.... LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'M5  '||n||' kunjungan ganda.................. GAGAL'||chr(10); end if;
+
+  -- kode dan tanggal harus mengikuti WIB, bukan UTC
+  if tanggal_lokal() = ((now() at time zone 'Asia/Jakarta')::date)
+  then ok:=ok+1; r:=r||'M6  tanggal sistem memakai WIB............... LULUS ('||tanggal_lokal()||')'||chr(10);
+  else gagal:=gagal+1; r:=r||'M6  tanggal sistem salah zona................ GAGAL'||chr(10); end if;
+
+  -- buat judul baru + 4 eksemplar
+  declare
+    v_kode text[]; v_tid uuid; v_judul text := 'REGRESI UJI ' || clock_timestamp();
+  begin
+    select array_agg(x.kode) into v_kode
+      from add_book_copies(null, v_judul, 'P', 'Q', '2026', '111', 'Uji', '4',
+                           'BOS', tanggal_lokal(), 'Rak UJI', 'BAIK', 4) x;
+    if array_length(v_kode,1)=4 and (select count(distinct k) from unnest(v_kode) k)=4
+    then ok:=ok+1; r:=r||'M7  tambah 4 eksemplar, kode unik............. LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'M7  tambah eksemplar......................... GAGAL'||chr(10); end if;
+
+    select id into v_tid from titles where judul = upper(v_judul);
+    if (select count(*) from books where title_id=v_tid)=4
+    then ok:=ok+1; r:=r||'M8  4 eksemplar menunjuk 1 judul.............. LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'M8  relasi judul............................. GAGAL'||chr(10); end if;
+
+    -- tambah lagi ke judul yang sama: judul tidak boleh terduplikasi
+    perform add_book_copies(v_tid, null,null,null,null,null,null,null,
+                            'Donasi', tanggal_lokal(), 'Rak UJI-2', 'BAIK', 3);
+    if (select count(*) from titles where judul = upper(v_judul))=1
+       and (select count(*) from books where title_id=v_tid)=7
+    then ok:=ok+1; r:=r||'M9  +3 eksemplar tanpa judul ganda............ LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'M9  tambah ke judul lama..................... GAGAL'||chr(10); end if;
+
+    -- ubah bibliografi judul -> merambat ke seluruh eksemplar
+    update titles set pengarang='PENGARANG BARU' where id=v_tid;
+    if (select count(*) from books where title_id=v_tid and pengarang='PENGARANG BARU')=7
+    then ok:=ok+1; r:=r||'M10 edit judul merambat ke semua eksemplar.... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'M10 propagasi bibliografi.................... GAGAL'||chr(10); end if;
+
+    -- kode tidak boleh diubah
+    begin
+      update books set kode='000000000000' where title_id=v_tid and kode=v_kode[1];
+      gagal:=gagal+1; r:=r||'M11 kode eksemplar immutable................. GAGAL (lolos!)'||chr(10);
+    exception when others then ok:=ok+1; r:=r||'M11 kode eksemplar immutable................. LULUS'||chr(10); end;
+
+    -- eksemplar ditarik dari peredaran tidak boleh dipinjam
+    perform set_copy_status((select id from books where title_id=v_tid limit 1), 'RETIRED', 'uji');
+    begin
+      perform borrow_book((select id from books where title_id=v_tid and status_copy='RETIRED' limit 1),
+                          (select id from members limit 1), tanggal_lokal(), 3);
+      gagal:=gagal+1; r:=r||'M12 eksemplar RETIRED tidak bisa dipinjam.... GAGAL'||chr(10);
+    exception when others then ok:=ok+1; r:=r||'M12 eksemplar RETIRED tidak bisa dipinjam.... LULUS'||chr(10); end;
+
+    -- baca di tempat: mencatat aktivitas + kunjungan, stok TIDAK berubah
+    declare v_b uuid; v_m uuid; v_ters int; v_a reading_activities; v_l loans;
+    begin
+      select id into v_b from books where title_id=v_tid and status_copy='AVAILABLE' limit 1;
+      select id into v_m from members where tipe='Siswa' limit 1;
+      v_a := catat_baca_ditempat(v_m, v_b, null);
+      select tersedia into v_ters from books where id=v_b;
+      if v_a.mode='READ_IN_LIBRARY' and v_ters=1
+         and exists (select 1 from visits where member_id=v_m and tanggal=tanggal_lokal())
+      then ok:=ok+1; r:=r||'M13 baca di tempat: aktivitas+kunjungan,'||chr(10)
+                        ||'    stok tetap tersedia..................... LULUS'||chr(10);
+      else gagal:=gagal+1; r:=r||'M13 baca di tempat........................... GAGAL'||chr(10); end if;
+
+      -- scan ganda dalam 10 menit tidak boleh menggandakan aktivitas
+      perform catat_baca_ditempat(v_m, v_b, null);
+      if (select count(*) from reading_activities
+           where member_id=v_m and book_id=v_b and mode='READ_IN_LIBRARY')=1
+      then ok:=ok+1; r:=r||'M14 scan ganda tidak menggandakan aktivitas... LULUS'||chr(10);
+      else gagal:=gagal+1; r:=r||'M14 scan ganda............................... GAGAL'||chr(10); end if;
+
+      -- kunjungan tetap satu baris, hanya penghitung scan bertambah
+      if (select count(*) from visits where member_id=v_m and tanggal=tanggal_lokal())=1
+      then ok:=ok+1; r:=r||'M15 kunjungan tetap 1 baris per hari......... LULUS'||chr(10);
+      else gagal:=gagal+1; r:=r||'M15 kunjungan ganda.......................... GAGAL'||chr(10); end if;
+
+      -- pinjam menghasilkan aktivitas BORROW_HOME otomatis
+      v_l := borrow_book(v_b, v_m, tanggal_lokal(), 3);
+      if exists (select 1 from reading_activities where loan_id=v_l.id and mode='BORROW_HOME')
+      then ok:=ok+1; r:=r||'M16 pinjam otomatis jadi aktivitas membaca... LULUS'||chr(10);
+      else gagal:=gagal+1; r:=r||'M16 aktivitas dari pinjaman.................. GAGAL'||chr(10); end if;
+    end;
+  end;
 
   ---------------------------------------------------------------- HASIL
   r := r || chr(10) || '===========================================' || chr(10)
