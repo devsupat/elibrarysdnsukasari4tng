@@ -323,6 +323,94 @@ begin
     end;
   end;
 
+  ---------------------------------------------------------------- BAGIAN 6
+  -- Sirkulasi: baca di tempat / pinjam ke kelas / pinjam pulang (Task 04).
+  ----------------------------------------------------------------
+  r := r || chr(10) || '-- 6. BACA DI TEMPAT / KELAS / PULANG --' || chr(10);
+
+  -- sesi kelas tidak boleh mencemari statistik bacaan pribadi
+  select count(*) into n from reading_activities a
+    join loans l on l.id = a.loan_id
+   where l.session_id is not null and a.mode <> 'CLASS_LOAN';
+  if n=0 then ok:=ok+1; r:=r||'S1  pinjaman sesi kelas selalu CLASS_LOAN.... LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'S1  '||n||' aktivitas sesi salah mode......... GAGAL'||chr(10); end if;
+
+  select count(*) into n from reading_activities a
+    join loans l on l.id = a.loan_id
+    join loan_sessions s on s.id = l.session_id
+   where a.kelas is distinct from s.kelas;
+  if n=0 then ok:=ok+1; r:=r||'S2  aktivitas kelas memakai kelas PEMAKAI.... LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'S2  '||n||' aktivitas salah atribusi kelas.... GAGAL'||chr(10); end if;
+
+  select count(*) into n from loans l
+   where l.session_id is not null
+     and not exists (select 1 from loan_sessions s where s.id = l.session_id);
+  if n=0 then ok:=ok+1; r:=r||'S3  FK loans -> loan_sessions utuh........... LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'S3  '||n||' loan menunjuk sesi hilang......... GAGAL'||chr(10); end if;
+
+  -- sesi yang masih punya buku di luar tidak boleh berstatus tertutup
+  select count(*) into n from loan_sessions s
+   where s.ditutup_at is not null
+     and exists (select 1 from loans l where l.session_id = s.id
+                  and l.kembali is null and l.status = 'BORROWED');
+  if n=0 then ok:=ok+1; r:=r||'S4  sesi tertutup = semua buku sudah kembali. LULUS'||chr(10);
+  else gagal:=gagal+1; r:=r||'S4  '||n||' sesi tertutup padahal buku di luar GAGAL'||chr(10); end if;
+
+  declare
+    v_s loan_sessions; v_m uuid; v_w uuid; v_b1 uuid; v_b2 uuid;
+    l_a loans; l_b loans; v_a reading_activities;
+  begin
+    select id into v_m from members where tipe='Siswa' limit 1;
+    select id into v_w from members where tipe='Siswa' and id<>v_m limit 1;
+    select id into v_b1 from books where status_copy='AVAILABLE' and tersedia=1
+      and not exists (select 1 from loans l where l.book_id=books.id and l.kembali is null) limit 1;
+    select id into v_b2 from books where status_copy='AVAILABLE' and tersedia=1 and id<>v_b1
+      and not exists (select 1 from loans l where l.book_id=books.id and l.kembali is null) limit 1;
+
+    -- baca di tempat: tidak membuat pinjaman, stok tidak berkurang
+    v_a := catat_baca_ditempat(v_m, v_b1, null);
+    if v_a.mode='READ_IN_LIBRARY'
+       and (select tersedia from books where id=v_b1)=1
+       and not exists (select 1 from loans where book_id=v_b1 and kembali is null)
+    then ok:=ok+1; r:=r||'S5  baca di tempat tidak membuat pinjaman.... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'S5  baca di tempat........................... GAGAL'||chr(10); end if;
+
+    -- sesi kelas
+    v_s := buka_sesi_kelas('6C','IPAS', v_w);
+    l_a := borrow_book(v_b1, v_w, tanggal_lokal(), 0, v_s.id);
+    l_b := borrow_book(v_b2, v_w, tanggal_lokal(), 0, v_s.id);
+    if (select count(*) from reading_activities
+         where loan_id in (l_a.id, l_b.id) and mode='CLASS_LOAN' and kelas='6C')=2
+    then ok:=ok+1; r:=r||'S6  2 buku sesi 6C tercatat sebagai kelas.... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'S6  pencatatan sesi kelas.................... GAGAL'||chr(10); end if;
+
+    -- pinjam pulang pribadi tetap BORROW_HOME
+    perform return_book(l_a.id);
+    l_a := borrow_book(v_b1, v_m, tanggal_lokal(), 3, null);
+    if (select mode from reading_activities where loan_id=l_a.id)='BORROW_HOME'
+       and (select batas from loans where id=l_a.id) = tanggal_lokal()+3
+    then ok:=ok+1; r:=r||'S7  pinjam pulang: BORROW_HOME, +3 hari..... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'S7  pinjam pulang............................ GAGAL'||chr(10); end if;
+
+    -- sesi tertutup sendiri saat buku terakhirnya kembali
+    perform return_book(l_b.id);
+    if (select ditutup_at from loan_sessions where id=v_s.id) is not null
+    then ok:=ok+1; r:=r||'S8  sesi tertutup otomatis saat buku habis... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'S8  penutupan sesi otomatis................. GAGAL'||chr(10); end if;
+
+    -- sesi tertutup menolak pinjaman baru
+    begin
+      perform borrow_book(v_b2, v_w, tanggal_lokal(), 0, v_s.id);
+      gagal:=gagal+1; r:=r||'S9  sesi tertutup menolak pinjaman baru..... GAGAL'||chr(10);
+    exception when others then ok:=ok+1; r:=r||'S9  sesi tertutup menolak pinjaman baru..... LULUS'||chr(10); end;
+
+    -- perwakilan tidak boleh punya aktivitas pribadi akibat sesi kelas
+    select count(*) into n from reading_activities
+     where member_id=v_w and mode in ('READ_IN_LIBRARY','BORROW_HOME') and tanggal=tanggal_lokal();
+    if n=0 then ok:=ok+1; r:=r||'S10 perwakilan bebas dari bacaan pribadi.... LULUS'||chr(10);
+    else gagal:=gagal+1; r:=r||'S10 perwakilan salah dihitung '||n||' bacaan... GAGAL'||chr(10); end if;
+  end;
+
   ---------------------------------------------------------------- HASIL
   r := r || chr(10) || '===========================================' || chr(10)
          || 'HASIL: ' || ok || ' LULUS, ' || gagal || ' GAGAL' || chr(10)

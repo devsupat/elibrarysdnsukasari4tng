@@ -571,6 +571,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 .title-cover-actions { min-width:0; }
 .title-cover-actions p { margin:0 0 8px; font-size:13px; font-weight:800; color:var(--blue-dark); }
 .title-cover-actions small { display:block; margin-top:5px; color:#4a6bb5; line-height:1.35; }
+.cover-file-input { display:none; }
 .book-details h4 { font-size: 15px; color: var(--blue-dark); margin-bottom: 2px; }
 .book-details p { font-size: 12px; color: #666; margin-bottom: 4px; }
 .cat-pill { font-size: 11px; background: var(--sky2); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
@@ -1308,7 +1309,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
         <div class="title-cover-preview" id="nbCoverPreview">📖</div>
         <div class="title-cover-actions">
           <p>Cover Buku</p>
-          <input type="file" id="nbCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <input class="cover-file-input" type="file" id="nbCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <label class="btn small ghost" for="nbCoverFile">📷 Pilih / Upload Cover</label>
           <small>Foto atau pilih gambar cover. Gambar akan diperkecil otomatis.</small>
         </div>
       </div>
@@ -1379,9 +1381,11 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
         <option>Bantuan Dinas</option><option>BOS</option><option>Donasi</option>
         <option>Pembelian Sekolah</option><option>Bantuan Komite</option><option>Lainnya</option>
       </select>
-      <label style="display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px">
-        <input type="checkbox" id="bFilterNoTitle" style="width:auto"> Belum punya judul
-      </label>
+      <select id="bFilterTitle" aria-label="Filter berdasarkan judul" title="Menentukan buku yang ditampilkan di tabel">
+        <option value="">Semua judul</option>
+        <option value="linked">Sudah punya judul</option>
+        <option value="unlinked">Belum punya judul</option>
+      </select>
     </div>
     <!-- baris aksi untuk mencetak label: muncul hanya bila ada buku dicentang -->
     <div id="bAksiBar" style="display:none;margin:10px 0;padding:10px 12px;background:var(--sky);
@@ -1391,9 +1395,10 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <button class="btn small ghost" onclick="bBersihkanPilihan()">Batalkan pilihan</button>
     </div>
 
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 5px">Centang baris untuk memilih eksemplar yang akan diproses bersama.</div>
     <div class="table-wrap"><table>
       <thead><tr>
-        <th style="width:34px"><input type="checkbox" id="bPilihSemua" title="Pilih semua yang tampil"
+        <th style="width:34px"><input type="checkbox" id="bPilihSemua" aria-label="Pilih semua eksemplar yang tampil" title="Pilih semua yang tampil"
             onclick="bTogglePilihSemua(this.checked)" style="width:auto"></th>
         <th>Kode</th><th>Judul</th><th>Rak</th><th>Sumber</th><th>Kondisi</th><th>Status</th><th>Aksi</th></tr></thead>
       <tbody id="bookTable"></tbody>
@@ -1404,6 +1409,96 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 
 <!-- ============ SIRKULASI ============ -->
 <div class="page" id="page-sirkulasi">
+
+  <!-- ============ SIRKULASI CEPAT (SCAN) ============ -->
+  <div class="card">
+    <h2>⚡ Sirkulasi Cepat</h2>
+    <p class="subtitle">Scan kartu siswa <b>sekali</b>, lalu scan buku sebanyak yang diperlukan. Tanpa mengetik.</p>
+
+    <!-- LANGKAH 1 — SISWA -->
+    <div id="scLangkahSiswa">
+      <h3>1️⃣ Scan Kartu Siswa</h3>
+      <div class="scan-viewport" id="scViewSiswa">
+        <span id="scViewSiswaTeks" style="color:#bbb;font-size:13px;padding:0 14px;text-align:center">
+          Kamera belum aktif
+        </span>
+      </div>
+      <div style="text-align:center">
+        <button class="btn green" id="scBtnKamSiswa" onclick="scMulaiScanSiswa()">📷 Mulai Kamera</button>
+        <button class="btn red" id="scBtnStopSiswa" onclick="scStopKamera()" style="display:none">⏹️ Stop</button>
+      </div>
+      <label style="margin-top:12px">Tidak bisa pakai kamera? Ketik atau scan nomor kartunya:</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="scInputSiswa" placeholder="cth: 126010800001" style="flex:1;min-width:180px"
+               onkeydown="if(event.key==='Enter')scCariSiswaManual()">
+        <button class="btn" onclick="scCariSiswaManual()">🔎 Cari</button>
+      </div>
+      <div id="scPesanSiswa" style="margin-top:10px"></div>
+    </div>
+
+    <!-- LANGKAH 2 — SESI SISWA AKTIF -->
+    <div id="scSesiSiswa" style="display:none">
+      <div style="background:var(--sky);border:2px solid var(--blue);border-radius:14px;padding:12px;
+                  display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:32px">🧑‍🎓</div>
+        <div style="flex:1;min-width:150px">
+          <h3 style="margin:0;color:var(--blue-dark)" id="scNamaSiswa">-</h3>
+          <div style="font-size:13px;color:#4a6bb5" id="scKelasSiswa">-</div>
+        </div>
+        <button class="btn small ghost" onclick="scGantiSiswa()">🔄 Ganti Siswa</button>
+      </div>
+
+      <div id="scRingkasSesi" style="margin-top:10px"></div>
+
+      <h3>2️⃣ Scan Buku</h3>
+      <div class="scan-viewport" id="scViewBuku">
+        <span id="scViewBukuTeks" style="color:#bbb;font-size:13px;padding:0 14px;text-align:center">
+          Kamera belum aktif
+        </span>
+      </div>
+      <div style="text-align:center">
+        <button class="btn green" id="scBtnKamBuku" onclick="scMulaiScanBuku()">📷 Mulai Kamera</button>
+        <button class="btn red" id="scBtnStopBuku" onclick="scStopKamera()" style="display:none">⏹️ Stop</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <input id="scInputBuku" placeholder="atau ketik kode buku, cth: 202609250001" style="flex:1;min-width:180px"
+               onkeydown="if(event.key==='Enter')scCariBukuManual()">
+        <button class="btn" onclick="scCariBukuManual()">🔎 Cari</button>
+      </div>
+      <div id="scPesanBuku" style="margin-top:10px"></div>
+      <div id="scPilihan" style="display:none;margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- ============ PENGEMBALIAN DENGAN SCAN ============ -->
+  <div class="card alt">
+    <h2>↩️ Pengembalian dengan Scan</h2>
+    <p class="subtitle">Scan buku yang dikembalikan — sistem mencari sendiri siapa peminjamnya.</p>
+    <div class="scan-viewport" id="scViewKembali">
+      <span id="scViewKembaliTeks" style="color:#bbb;font-size:13px;padding:0 14px;text-align:center">
+        Kamera belum aktif
+      </span>
+    </div>
+    <div style="text-align:center">
+      <button class="btn green" id="scBtnKamKembali" onclick="scMulaiScanKembali()">📷 Mulai Kamera</button>
+      <button class="btn red" id="scBtnStopKembali" onclick="scStopKamera()" style="display:none">⏹️ Stop</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <input id="scInputKembali" placeholder="atau ketik kode buku" style="flex:1;min-width:180px"
+             onkeydown="if(event.key==='Enter')scCariKembaliManual()">
+      <button class="btn" onclick="scCariKembaliManual()">🔎 Cari</button>
+    </div>
+    <div id="scPesanKembali" style="margin-top:10px"></div>
+  </div>
+
+  <!-- ============ SESI KELAS BERJALAN ============ -->
+  <div class="card" id="scCardSesiKelas" style="display:none">
+    <h2>🏫 Sesi Kelas yang Masih Berjalan <span id="scSesiCount" class="badge b-orange"></span></h2>
+    <div class="squiggle"></div>
+    <p class="subtitle">Buku-buku ini sedang dipakai di kelas dan menunggu dikembalikan hari ini.</p>
+    <div id="scSesiList"></div>
+  </div>
+
   <div class="grid2">
     <div class="card">
       <h2>📖 Peminjaman Baru</h2>
@@ -1782,7 +1877,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
         <div class="title-cover-preview" id="ubCoverPreview">📖</div>
         <div class="title-cover-actions">
           <p>Cover Buku</p>
-          <input type="file" id="ubCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <input class="cover-file-input" type="file" id="ubCoverFile" accept="image/jpeg,image/png,image/webp" capture="environment">
+          <label class="btn small ghost" for="ubCoverFile">📷 Ganti Cover</label>
           <button type="button" class="btn small ghost" onclick="hapusCoverUbah()">Hapus Cover</button>
           <small>Cover berlaku untuk semua eksemplar judul ini.</small>
         </div>
@@ -1974,6 +2070,9 @@ function goPage(p) {
     sbLoginModalOpen();
     return;
   }
+
+  // kamera tidak boleh terus hidup saat petugas pindah halaman
+  if (p !== 'sirkulasi' && typeof scStopKamera === 'function') scStopKamera();
 
   const idx = PAGES.indexOf(p);
   if (idx !== -1) currentPageIndex = idx;
@@ -2617,17 +2716,29 @@ function bRenderAksiBar(){
 
 /* ---------- INVENTARIS ---------- */
 let bBarisTampil = [];   // id eksemplar yang sedang tampil, untuk "pilih semua"
+function renderTitleFilterOptions(){
+  const select = $('bFilterTitle'); if(!select) return;
+  const value = select.value;
+  const noTitle = DB.books.filter(b=>!b.titleId).length;
+  const hasTitle = DB.books.length - noTitle;
+  select.innerHTML = '<option value="">Semua judul</option>'
+    + '<option value="linked">Sudah punya judul (' + hasTitle + ')</option>'
+    + '<option value="unlinked">Belum punya judul (' + noTitle + ')</option>';
+  select.value = value;
+}
 function renderBooks(){
+  renderTitleFilterOptions();
   const q  = ($('bSearch').value||'').toLowerCase().trim();
   const fs = $('bFilterStatus').value, fk = $('bFilterKondisi').value;
-  const fu = $('bFilterSumber').value, fn = $('bFilterNoTitle').checked;
+  const fu = $('bFilterSumber').value, ft = $('bFilterTitle').value;
   const titleById = {}; DB.titles.forEach(t=>titleById[t.id]=t);
 
   const rows = DB.books.filter(b=>{
     if(fs && (b.statusCopy||'AVAILABLE')!==fs) return false;
     if(fk && (b.kondisi||'BAIK')!==fk) return false;
     if(fu === '__kosong__'){ if(b.sumber) return false; } else if(fu && b.sumber!==fu) return false;
-    if(fn && b.titleId) return false;
+    if(ft === 'linked' && !b.titleId) return false;
+    if(ft === 'unlinked' && b.titleId) return false;
     if(!q) return true;
     const t = b.titleId ? titleById[b.titleId] : null;
     return String(b.kode).toLowerCase().includes(q)
@@ -2660,8 +2771,8 @@ function renderBooks(){
   $('bMoreBtn').style.display = rows.length > bookLimit ? '' : 'none';
   bRenderAksiBar();
 }
-['bSearch','bFilterStatus','bFilterKondisi','bFilterSumber','bFilterNoTitle']
-  .forEach(i=>$(i).addEventListener('input',()=>{bookLimit=50;renderBooks();}));
+['bSearch','bFilterStatus','bFilterKondisi','bFilterSumber','bFilterTitle']
+  .forEach(i=>$(i).addEventListener(i==='bSearch'?'input':'change',()=>{bookLimit=50;renderBooks();}));
 $('nbJudul').addEventListener('input', nbCekJudul);
 $('nbCoverFile').addEventListener('change', e=>chooseCover('nb', e.target.files[0]));
 $('ubCoverFile').addEventListener('change', e=>chooseCover('ub', e.target.files[0]));
@@ -2684,6 +2795,411 @@ function setupAC(inputId, listId, hiddenId, getItems, labelFn){
     }));
   });
   inp.addEventListener('blur', ()=>setTimeout(()=>list.style.display='none', 150));
+}
+
+/* =================== SIRKULASI CEPAT (SCAN) ===================
+   Alur: scan siswa SEKALI -> scan buku berkali-kali -> pilih jenis penggunaan.
+
+   Pencarian siswa & buku dilakukan dari data yang SUDAH ada di memori
+   (DB.members / DB.books), jadi satu scan = NOL permintaan jaringan.
+   Jaringan hanya dipakai saat transaksi benar-benar disimpan. */
+
+const SC = {
+  siswa: null,          // anggota yang sedang aktif di sesi
+  riwayat: [],          // buku yang sudah diproses di sesi ini
+  buku: null,           // buku hasil scan yang sedang menunggu pilihan
+  sesiKelas: null,      // sesi "Pinjam ke Kelas" yang sedang berjalan
+  kamera: null,         // {stream, raf, video, target}
+  target: '',           // 'siswa' | 'buku' | 'kembali'
+  terakhir: { kode:'', t:0 },
+  sibuk: false          // kunci: satu transaksi pada satu waktu
+};
+const SC_JEDA_MS = 2500;  // QR yang sama diabaikan selama ini
+
+function scKotak(el, warna, isi){
+  const w = { ok:['var(--ok)','#eaf9f0'], bad:['var(--bad)','#fdecea'],
+              warn:['var(--orange,#e67e22)','#fdf3e6'], info:['var(--blue)','var(--sky)'] }[warna] || ['var(--blue)','var(--sky)'];
+  $(el).innerHTML = `<div style="border:2px solid ${w[0]};background:${w[1]};border-radius:12px;padding:10px 12px">${isi}</div>`;
+}
+function scBersih(el){ $(el).innerHTML = ''; }
+
+/* ---------- kamera: satu implementasi dipakai tiga tempat ---------- */
+function scStopKamera(){
+  if(SC.kamera){
+    try{ cancelAnimationFrame(SC.kamera.raf); }catch(e){}
+    try{ SC.kamera.stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    const v = SC.kamera.video; if(v && v.parentNode) v.parentNode.removeChild(v);
+    SC.kamera = null;
+  }
+  ['Siswa','Buku','Kembali'].forEach(n=>{
+    const a=$('scBtnKam'+n), b=$('scBtnStop'+n), t=$('scView'+n+'Teks');
+    if(a) a.style.display=''; if(b) b.style.display='none';
+    if(t){ t.style.display=''; t.textContent='Kamera belum aktif'; }
+  });
+  SC.target = '';
+}
+
+async function scMulaiKamera(target, viewId, onHasil){
+  scStopKamera();
+  SC.target = target;
+  const nama = viewId.replace('scView','');
+  const teks = $('scView'+nama+'Teks');
+  if(typeof jsQR === 'undefined'){
+    if(teks) teks.textContent = 'Pembaca QR belum termuat. Gunakan pencarian manual di bawah.';
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    if(teks) teks.textContent = 'Perangkat ini tidak mendukung kamera. Gunakan pencarian manual di bawah.';
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    const video = document.createElement('video');
+    video.setAttribute('playsinline',''); video.muted = true;
+    video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+    $(viewId).appendChild(video);
+    video.srcObject = stream; await video.play();
+    if(teks) teks.style.display = 'none';
+    $('scBtnKam'+nama).style.display='none'; $('scBtnStop'+nama).style.display='';
+
+    const canvas = document.createElement('canvas');
+    SC.kamera = { stream, video, raf:null, target };
+    const tick = ()=>{
+      if(!SC.kamera || SC.kamera.target!==target) return;
+      if(video.readyState === video.HAVE_ENOUGH_DATA){
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
+        if(code && code.data){
+          const kode = String(code.data).trim();
+          const now = Date.now();
+          // satu QR = satu peristiwa, walau kamera membacanya puluhan kali per detik
+          if(!(kode===SC.terakhir.kode && now-SC.terakhir.t < SC_JEDA_MS) && !SC.sibuk){
+            SC.terakhir = { kode, t: now };
+            onHasil(kode);
+          }
+        }
+      }
+      SC.kamera.raf = requestAnimationFrame(tick);
+    };
+    SC.kamera.raf = requestAnimationFrame(tick);
+  }catch(e){
+    if(teks) teks.textContent = 'Kamera tidak dapat digunakan. Izinkan akses kamera atau gunakan pencarian manual di bawah.';
+    $('scBtnKam'+nama).style.display=''; $('scBtnStop'+nama).style.display='none';
+  }
+}
+
+/* ---------- LANGKAH 1: SISWA ---------- */
+function scNormalKode(s){ return String(s||'').trim().toUpperCase().replace(/\s+/g,''); }
+
+function scMulaiScanSiswa(){ scMulaiKamera('siswa','scViewSiswa', scTerimaSiswa); }
+function scCariSiswaManual(){ scTerimaSiswa($('scInputSiswa').value); }
+
+function scTerimaSiswa(kodeMentah){
+  const kode = scNormalKode(kodeMentah);
+  if(!kode){ scKotak('scPesanSiswa','warn','⚠️ Masukkan nomor kartu siswa dulu.'); return; }
+  const m = DB.members.find(x => scNormalKode(x.barcodeId) === kode);
+  if(!m){
+    scKotak('scPesanSiswa','bad',
+      `❌ <b>Siswa tidak ditemukan.</b><br><small>Kartu <code>${esc(kode)}</code> belum terdaftar.
+       Periksa kartunya, atau daftarkan siswa lewat menu <b>Anggota</b>.</small>`);
+    return;
+  }
+  if((m.lifecycle||'AKTIF') !== 'AKTIF'){
+    scKotak('scPesanSiswa','bad',
+      `❌ <b>${esc(m.nama)}</b> berstatus <b>${esc(m.lifecycle)}</b> dan tidak dapat meminjam.`);
+    return;
+  }
+  scStopKamera();
+  SC.siswa = m; SC.riwayat = []; SC.buku = null;
+  scBersih('scPesanSiswa'); $('scInputSiswa').value='';
+  $('scNamaSiswa').textContent = m.nama;
+  $('scKelasSiswa').textContent = (m.kelas||'-') + (m.rombel?' '+m.rombel:'') + ' · ' + (m.tipe||'Siswa');
+  $('scLangkahSiswa').style.display='none';
+  $('scSesiSiswa').style.display='';
+  scRenderRingkas();
+  toast('✅ '+m.nama);
+}
+
+function scGantiSiswa(){
+  scStopKamera();
+  SC.siswa = null; SC.riwayat = []; SC.buku = null; SC.sesiKelas = null;   // sesi kelas tidak ikut siswa berikutnya
+  $('scSesiSiswa').style.display='none';
+  $('scLangkahSiswa').style.display='';
+  scBersih('scPesanBuku'); $('scPilihan').style.display='none';
+  scBersih('scPesanSiswa'); $('scInputSiswa').value='';
+  $('scInputSiswa').focus();
+}
+
+function scRenderRingkas(){
+  const el = $('scRingkasSesi');
+  const ikon = { baca:'📖', kelas:'🏫', pulang:'🏠' };
+  const label = { baca:'Baca di tempat', kelas:'Pinjam ke kelas', pulang:'Pinjam pulang' };
+  let html = '';
+  if(SC.sesiKelas){
+    html += `<div style="background:#fdf3e6;border:2px solid #e67e22;border-radius:12px;padding:8px 12px;margin-bottom:8px">
+      🏫 Sesi kelas aktif: <b>${esc(SC.sesiKelas.kelas)}</b>${SC.sesiKelas.kegiatan?' · '+esc(SC.sesiKelas.kegiatan):''}
+      <button class="btn small ghost" style="margin-left:8px" onclick="scTutupSesiKelas()">Selesai sesi kelas</button>
+    </div>`;
+  }
+  if(SC.riwayat.length){
+    html += `<b style="font-size:13px;color:var(--blue-dark)">Buku diproses dalam sesi ini (${SC.riwayat.length}):</b>
+      <div style="margin-top:6px">` + SC.riwayat.map((x,i)=>
+        `<div class="rank" style="padding:5px 8px">
+           <div class="info"><b>${i+1}. ${esc(x.judul)}</b>
+             <span><code>${esc(x.kode)}</code> · ${ikon[x.jenis]} ${label[x.jenis]}${x.kelas?' ('+esc(x.kelas)+')':''}</span></div>
+         </div>`).join('') + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+/* ---------- LANGKAH 2: BUKU ---------- */
+function scMulaiScanBuku(){ scMulaiKamera('buku','scViewBuku', scTerimaBuku); }
+function scCariBukuManual(){ scTerimaBuku($('scInputBuku').value); }
+
+function scTerimaBuku(kodeMentah){
+  const kode = scNormalKode(kodeMentah);
+  if(!kode){ scKotak('scPesanBuku','warn','⚠️ Masukkan kode buku dulu.'); return; }
+  const b = DB.books.find(x => scNormalKode(x.kode) === kode);
+  if(!b){
+    scKotak('scPesanBuku','bad',
+      `❌ <b>Buku tidak ditemukan di inventaris.</b><br><small>Kode <code>${esc(kode)}</code> belum terdaftar.</small>`);
+    $('scPilihan').style.display='none'; return;
+  }
+  $('scInputBuku').value='';
+
+  const st = b.statusCopy || 'AVAILABLE';
+  const alasan = {
+    BORROWED:'Buku ini <b>sedang dipinjam</b> dan belum kembali.',
+    LOST:'Buku ini <b>dinyatakan hilang</b>.',
+    DAMAGED:'Buku ini <b>rusak</b> dan tidak dapat dipinjam.',
+    RETIRED:'Buku ini <b>ditarik dari peredaran</b>.'
+  }[st];
+
+  SC.buku = b;
+  let info = `<b>📚 ${esc(b.judul)}</b><br><small>Kode <code>${esc(b.kode)}</code>${b.lokasi?' · '+esc(b.lokasi):''}</small>`;
+
+  if(st === 'BORROWED'){
+    const l = DB.loans.find(x => x.bookId===b.id && !x.kembali);
+    if(l) info += `<br><small>Dipinjam oleh <b>${esc(l.nama)}</b> (${esc(l.kelas||'-')}) sejak ${fmtDate(l.pinjam)}.</small>`;
+    scKotak('scPesanBuku','warn', info + `<br><br>⚠️ ${alasan}
+      <br><small>Gunakan panel <b>Pengembalian dengan Scan</b> di bawah bila buku ini hendak dikembalikan.</small>`);
+    $('scPilihan').style.display='none'; SC.buku=null; return;
+  }
+  if(alasan){
+    scKotak('scPesanBuku','bad', info + `<br><br>❌ ${alasan}`);
+    $('scPilihan').style.display='none'; SC.buku=null; return;
+  }
+
+  scKotak('scPesanBuku','ok', info + `<br><small style="color:var(--ok)">✅ Tersedia</small>`);
+  const labelKelas = SC.sesiKelas ? ('🏫 Pinjam ke Kelas ' + esc(SC.sesiKelas.kelas)) : '🏫 Pinjam ke Kelas';
+  $('scPilihan').style.display='';
+  $('scPilihan').innerHTML = `
+    <b style="font-size:13px;color:var(--blue-dark)">Apa yang dilakukan dengan buku ini?</b>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
+      <button class="btn green"  onclick="scProses('baca')">📖 Baca di Tempat</button>
+      <button class="btn yellow" onclick="scProses('kelas')">${labelKelas}</button>
+      <button class="btn"        onclick="scProses('pulang')">🏠 Pinjam Pulang</button>
+      <button class="btn ghost small" onclick="scBatalBuku()">Batal</button>
+    </div>
+    <div id="scFormKelas" style="display:none;margin-top:10px"></div>`;
+}
+
+function scBatalBuku(){ SC.buku=null; $('scPilihan').style.display='none'; scBersih('scPesanBuku'); }
+
+/* Sesi kelas dibuka sekali; buku berikutnya langsung ikut sesi yang sama. */
+function scFormSesiKelas(){
+  const kelasAda = [...new Set(DB.members.map(m=>m.kelas).filter(Boolean))].sort();
+  $('scFormKelas').style.display='';
+  $('scFormKelas').innerHTML = `
+    <div style="background:#fdf3e6;border:2px solid #e67e22;border-radius:12px;padding:10px 12px">
+      <b style="color:var(--blue-dark)">Buku dipakai oleh kelas mana?</b>
+      <div class="frow" style="margin-top:8px">
+        <div><label>Kelas *</label>
+          <input id="scKelasTujuan" list="scDlKelas" placeholder="cth: 4A">
+          <datalist id="scDlKelas">${kelasAda.map(k=>`<option value="${esc(k)}"></option>`).join('')}</datalist>
+        </div>
+        <div><label>Kegiatan / Mata Pelajaran</label>
+          <input id="scKegiatan" placeholder="cth: Bahasa Indonesia"></div>
+      </div>
+      <div class="hint">Buku dicatat sebagai dipakai kelas tersebut — bukan sebagai bacaan pribadi
+        ${esc(SC.siswa ? SC.siswa.nama : 'perwakilan')}.</div>
+      <button class="btn green small" style="margin-top:8px" onclick="scMulaiSesiKelas()">🏫 Mulai Sesi &amp; Pinjam Buku Ini</button>
+    </div>`;
+  $('scKelasTujuan').focus();
+}
+
+async function scMulaiSesiKelas(){
+  const kelas = ($('scKelasTujuan').value||'').trim();
+  if(!kelas){ toast('⚠️ Isi kelas tujuannya dulu'); $('scKelasTujuan').focus(); return; }
+  const kegiatan = ($('scKegiatan').value||'').trim();
+  try{
+    SC.sesiKelas = await LibraryAPI.bukaSesiKelas(kelas, kegiatan, SC.siswa.id);
+    $('scFormKelas').style.display='none';
+    await scProses('kelas');
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
+function scTutupSesiKelas(){
+  SC.sesiKelas = null;
+  scRenderRingkas();
+  toast('🏫 Sesi kelas ditutup untuk sesi scan ini. Pengembalian tetap lewat panel di bawah.');
+}
+
+/* ---------- menyimpan transaksi ---------- */
+async function scProses(jenis){
+  // Kunci mencegah transaksi ganda. Jangan pernah diam: petugas menekan tombol
+  // dan harus tahu kenapa tidak terjadi apa-apa.
+  if(SC.sibuk){ toast('⏳ Transaksi sebelumnya masih diproses, tunggu sebentar.'); return; }
+  if(!SC.siswa || !SC.buku){ toast('⚠️ Scan siswa dan buku dulu'); return; }
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online.'); return; }
+
+  if(jenis === 'kelas' && !SC.sesiKelas){ scFormSesiKelas(); return; }
+
+  SC.sibuk = true;
+  const b = SC.buku, m = SC.siswa;
+  $('scPilihan').style.display='none';
+  try{
+    if(jenis === 'baca'){
+      await LibraryAPI.bacaDitempat(m.id, b.id, null);
+      SC.riwayat.unshift({ kode:b.kode, judul:b.judul, jenis:'baca' });
+      scKotak('scPesanBuku','ok',
+        `✅ <b>${esc(b.judul)}</b> tercatat sebagai <b>baca di tempat</b> oleh ${esc(m.nama)}.
+         <br><small>Buku tetap tersedia di rak.</small>`);
+      toast('📖 Baca di tempat tercatat');
+    } else if(jenis === 'kelas'){
+      const loan = await LibraryAPI.borrow(b.id, m.id, todayStr(), 0, SC.sesiKelas.id);
+      DB.loans.unshift(loan);
+      scTambalBuku(b.id, { tersedia:0, statusCopy:'BORROWED' });
+      SC.riwayat.unshift({ kode:b.kode, judul:b.judul, jenis:'kelas', kelas:SC.sesiKelas.kelas });
+      scKotak('scPesanBuku','ok',
+        `✅ <b>${esc(b.judul)}</b> dipinjam untuk <b>Kelas ${esc(SC.sesiKelas.kelas)}</b>.
+         <br><small>Dikembalikan hari ini juga.</small>`);
+      toast('🏫 Masuk sesi Kelas '+SC.sesiKelas.kelas);
+      scMuatSesiKelas();                     // daftar sesi berjalan ikut diperbarui
+    } else {
+      const loan = await LibraryAPI.borrow(b.id, m.id, todayStr(), 3, null);
+      DB.loans.unshift(loan);
+      scTambalBuku(b.id, { tersedia:0, statusCopy:'BORROWED' });
+      SC.riwayat.unshift({ kode:b.kode, judul:b.judul, jenis:'pulang' });
+      scKotak('scPesanBuku','ok',
+        `✅ <b>${esc(b.judul)}</b> dipinjam pulang oleh ${esc(m.nama)}.
+         <br><small>Batas kembali <b>${fmtDateLong(loan.batas)}</b>.</small>`);
+      toast('🏠 Pinjam pulang tercatat');
+    }
+    SC.buku = null;
+    scRenderUlang();
+    scRenderRingkas();
+  }catch(e){
+    scKotak('scPesanBuku','bad','❌ '+esc(LibraryAPI.msg(e)));
+    toast('❌ '+LibraryAPI.msg(e));
+  }finally{ SC.sibuk = false; }
+}
+
+/* ---------- PENGEMBALIAN DENGAN SCAN ---------- */
+function scMulaiScanKembali(){ scMulaiKamera('kembali','scViewKembali', scTerimaKembali); }
+function scCariKembaliManual(){ scTerimaKembali($('scInputKembali').value); }
+
+async function scTerimaKembali(kodeMentah){
+  if(SC.sibuk) return;
+  const kode = scNormalKode(kodeMentah);
+  if(!kode){ scKotak('scPesanKembali','warn','⚠️ Masukkan kode buku dulu.'); return; }
+  const b = DB.books.find(x => scNormalKode(x.kode) === kode);
+  if(!b){
+    scKotak('scPesanKembali','bad',
+      `❌ <b>Buku tidak ditemukan di inventaris.</b><br><small>Kode <code>${esc(kode)}</code>.</small>`);
+    return;
+  }
+  const l = DB.loans.find(x => x.bookId===b.id && !x.kembali);
+  if(!l){
+    scKotak('scPesanKembali','warn',
+      `ℹ️ <b>${esc(b.judul)}</b> tidak sedang dipinjam.<br><small>Tidak ada yang perlu dikembalikan.</small>`);
+    $('scInputKembali').value=''; return;
+  }
+  const telat = todayStr() > l.batas;
+  scKotak('scPesanKembali','info',
+    `<b>📚 ${esc(b.judul)}</b><br><small>Kode <code>${esc(b.kode)}</code></small>
+     <br>Peminjam: <b>${esc(l.nama)}</b> (${esc(l.kelas||'-')})
+     <br><small>Dipinjam ${fmtDate(l.pinjam)} · batas ${fmtDate(l.batas)}
+       ${telat?'<b style="color:var(--bad)"> · TERLAMBAT</b>':''}</small>
+     <div style="margin-top:8px">
+       <button class="btn green" onclick="scKembalikan('${l.id}')">↩️ Kembalikan Sekarang</button>
+       <button class="btn ghost small" onclick="scBersih('scPesanKembali')">Batal</button>
+     </div>`);
+  $('scInputKembali').value='';
+}
+
+async function scKembalikan(loanId){
+  if(SC.sibuk){ toast('⏳ Transaksi sebelumnya masih diproses, tunggu sebentar.'); return; }
+  SC.sibuk = true;
+  try{
+    const l = DB.loans.find(x=>x.id===loanId);
+    await returnLoan(loanId);              // sudah menambal stok & merender ulang
+    if(l) scTambalBuku(l.bookId, { statusCopy:'AVAILABLE' });
+    scKotak('scPesanKembali','ok','✅ <b>Buku berhasil dikembalikan.</b> Silakan scan buku berikutnya.');
+    scMuatSesiKelas();                     // sesi kelas bisa jadi baru saja selesai
+  }catch(e){ scKotak('scPesanKembali','bad','❌ '+esc(LibraryAPI.msg(e))); }
+  finally{ SC.sibuk = false; }
+}
+
+/* ---------- SESI KELAS BERJALAN ---------- */
+let scSesiTerbuka = [];
+async function scMuatSesiKelas(){
+  if(!SB_ENABLED) return;
+  try{ scSesiTerbuka = await LibraryAPI.sesiTerbuka(); }catch(e){ return; }
+  scRenderSesiKelas();
+}
+function scRenderSesiKelas(){
+  const card = $('scCardSesiKelas'); if(!card) return;
+  if(!scSesiTerbuka.length){ card.style.display='none'; return; }
+  card.style.display='';
+  $('scSesiCount').textContent = scSesiTerbuka.length + ' sesi';
+  $('scSesiList').innerHTML = scSesiTerbuka.map(s=>{
+    const daftar = DB.loans.filter(l=>l.sessionId===s.id);
+    const sisa = daftar.filter(l=>!l.kembali).length;
+    const total = daftar.length;
+    return `<div class="rank" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <b style="flex:1;min-width:140px">Kelas ${esc(s.kelas)}${s.kegiatan?' · '+esc(s.kegiatan):''}</b>
+        <span class="badge ${sisa? 'b-orange':'b-green'}">${total-sisa}/${total} kembali</span>
+      </div>
+      <div style="font-size:12.5px;color:#4a6bb5">
+        Diambil ${s.nama?esc(s.nama):'-'} · ${fmtDate(s.tanggal)}
+      </div>
+      ${sisa ? `<div><button class="btn small green" onclick="scKembalikanSesi('${s.id}','${esc(s.kelas)}')">
+          ↩️ Kembalikan semua sisa (${sisa})</button>
+          <small style="color:#4a6bb5"> atau scan buku satu per satu di panel atas</small></div>`
+             : `<div style="color:var(--ok);font-weight:800">✅ Semua buku sesi ${esc(s.kelas)} sudah dikembalikan</div>`}
+    </div>`;
+  }).join('');
+}
+async function scKembalikanSesi(id, kelas){
+  if(!confirm('Kembalikan semua sisa buku sesi Kelas '+kelas+'?')) return;
+  try{
+    const n = await LibraryAPI.kembalikanSesi(id);
+    toast('✅ '+n+' buku sesi Kelas '+kelas+' dikembalikan');
+    // pengembalian massal menyentuh banyak baris sekaligus: di sini tarik ulang memang sepadan
+    const [books, loans] = await Promise.all([ LibraryAPI.pullBooks(), LibraryAPI.pullLoans() ]);
+    DB.books = books; DB.loans = loans;
+    await scMuatSesiKelas();
+    scRenderUlang();
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
+/* Setelah transaksi, JANGAN tarik ulang seluruh tabel: 1.548 buku + semua
+   pinjaman pada setiap buku yang discan itu lambat bagi petugas dan boros
+   kuota Supabase Free. Server sudah mengembalikan hasilnya, jadi keadaan lokal
+   cukup ditambal seperlunya; refresh realtime yang menyelaraskan sisanya. */
+function scTambalBuku(bookId, ubah){
+  const b = DB.books.find(x => x.id === bookId);
+  if(b) Object.assign(b, ubah);
+}
+function scRenderUlang(){
+  saveDB();
+  renderBooks(); renderLoans(); renderActiveLoans(); renderDashboard();
+  scRenderSesiKelas();
 }
 
 /* =================== LOANS (SIRKULASI) =================== */
@@ -3665,6 +4181,7 @@ async function sbRealtimeRefresh(){
     saveDB();
     renderTitleDatalist(); renderReviewJudul();
     renderBooks(); renderActiveLoans(); renderLoans(); renderDashboard(); renderStats();
+    scMuatSesiKelas();
   }catch(e){ console.error('realtime refresh', e); }
   finally{
     _rtSibuk = false;
@@ -3678,6 +4195,7 @@ async function sbLoadAll(){
       LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans(), LibraryAPI.pullTitles() ]);
     DB.members = members; DB.books = books; DB.loans = loans; DB.titles = titles;
     saveDB(); renderAll();
+    scMuatSesiKelas();      // sesi "Pinjam ke Kelas" yang masih berjalan
     if(!window._sbSub){ window._sbSub = LibraryAPI.subscribe(sbRealtimeRefresh); }
   }catch(e){ toast('❌ Muat data pusat: '+LibraryAPI.msg(e)); }
 }

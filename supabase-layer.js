@@ -70,10 +70,17 @@
       tahun: b.tahun || null, kategori: b.kategori || null, jumlah: b.jumlah, tersedia: b.tersedia,
       legacy_id: (b.id && /^B\d/.test(b.id)) ? b.id : null };
   }
+  function rowToSesi(r) {
+    if (!r) return null;
+    return { id: r.id, kelas: r.kelas, kegiatan: r.kegiatan || '', memberId: r.member_id || '',
+      nama: r.nama || '', tanggal: r.tanggal, dibukaAt: r.dibuka_at, ditutupAt: r.ditutup_at || '' };
+  }
   function rowToLoan(r) {
     return { id: r.id, memberId: r.member_id, bookId: r.book_id, nama: r.nama, kelas: r.kelas,
       jk: r.jk, noAnggota: r.no_anggota, kode: r.kode, judul: r.judul, pinjam: r.pinjam,
-      batas: r.batas, kembali: r.kembali || '', sanksi: r.sanksi || '' };
+      batas: r.batas, kembali: r.kembali || '', sanksi: r.sanksi || '',
+      // terisi = transaksi milik sesi "Pinjam ke Kelas", bukan bacaan pribadi
+      sessionId: r.session_id || '' };
   }
 
   function friendly(e) {
@@ -92,6 +99,8 @@
     if (/JUMLAH_COPY_TIDAK_VALID/.test(m)) return 'Jumlah eksemplar harus antara 1 sampai 200.';
     if (/MASIH_DIPINJAM/.test(m)) return 'Eksemplar ini sedang dipinjam. Proses pengembaliannya dulu.';
     if (/EKSEMPLAR_TIDAK_DITEMUKAN/.test(m)) return 'Eksemplar tidak ditemukan.';
+    if (/SESI_TIDAK_AKTIF/.test(m)) return 'Sesi kelas sudah ditutup. Buka sesi baru dulu.';
+    if (/KELAS_WAJIB_DIISI/.test(m)) return 'Kelas wajib diisi untuk peminjaman ke kelas.';
     if (/row-level security|permission denied/.test(m)) return 'Akses ditolak — login sebagai petugas dulu.';
     return m;
   }
@@ -260,9 +269,36 @@
     },
 
     // ---------- circulation (atomic on the server) ----------
-    async borrow(bookId, memberId, pinjam) {
-      var d = throwIf(await sb.rpc('borrow_book', { p_book_id: bookId, p_member_id: memberId, p_pinjam: pinjam }));
+    // sessionId terisi = transaksi milik sesi "Pinjam ke Kelas", bukan bacaan pribadi.
+    // Buku sesi kelas dipakai di jam pelajaran itu juga, jadi jatuh temponya hari yang sama.
+    async borrow(bookId, memberId, pinjam, days, sessionId) {
+      var args = { p_book_id: bookId, p_member_id: memberId, p_pinjam: pinjam };
+      if (days !== undefined && days !== null) args.p_days = days;
+      if (sessionId) args.p_session_id = sessionId;
+      var d = throwIf(await sb.rpc('borrow_book', args));
       return rowToLoan(Array.isArray(d) ? d[0] : d);
+    },
+
+    // ---------- baca di tempat ----------
+    // Tidak menyentuh stok: buku tetap di rak, hanya aktivitas & kunjungan yang tercatat.
+    async bacaDitempat(memberId, bookId, catatan) {
+      return throwIf(await sb.rpc('catat_baca_ditempat',
+        { p_member_id: memberId, p_book_id: bookId, p_catatan: catatan || null }));
+    },
+
+    // ---------- sesi pinjam ke kelas ----------
+    async bukaSesiKelas(kelas, kegiatan, memberId) {
+      var d = throwIf(await sb.rpc('buka_sesi_kelas',
+        { p_kelas: kelas, p_kegiatan: kegiatan || null, p_member_id: memberId || null }));
+      return rowToSesi(Array.isArray(d) ? d[0] : d);
+    },
+    async sesiTerbuka() {
+      var res = await sb.from('loan_sessions').select('*')
+        .is('ditutup_at', null).order('dibuka_at', { ascending: false }).limit(50);
+      return throwIf(res).map(rowToSesi);
+    },
+    async kembalikanSesi(sessionId) {
+      return throwIf(await sb.rpc('kembalikan_sesi_kelas', { p_session_id: sessionId }));
     },
     async returnLoan(loanId) {
       var d = throwIf(await sb.rpc('return_book', { p_loan_id: loanId }));
