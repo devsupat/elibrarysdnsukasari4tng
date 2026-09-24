@@ -60,6 +60,8 @@
   function friendly(e) {
     var m = (e && e.message) || String(e || '');
     if (/STOK_HABIS/.test(m)) return 'Stok buku habis / semua eksemplar dipinjam.';
+    if (/COPY_TIDAK_BEREDAR/.test(m)) return 'Eksemplar ini hilang/rusak/ditarik dari peredaran — tidak dapat dipinjam.';
+    if (/uniq_active_loan_per_copy/.test(m)) return 'Eksemplar ini sedang dipinjam — tidak bisa dipinjam dua kali.';
     if (/SUDAH_KEMBALI/.test(m)) return 'Transaksi sudah dikembalikan / tidak ditemukan.';
     if (/ANGGOTA_TIDAK/.test(m)) return 'Anggota tidak ditemukan.';
     if (/duplicate key/.test(m) && /barcode/.test(m)) return 'Barcode ID sudah dipakai anggota lain.';
@@ -95,10 +97,13 @@
     // PostgREST membatasi ~1000 row/response. Ambil per-halaman via .range() sampai batch < PAGE
     // supaya SELURUH baris termuat (mis. books 1548). Ordering: kolom niat + 'id' (pk unik) sebagai
     // tiebreaker → deterministik, tak ada baris terlewat/duplikat. Gagal 1 batch = throw (bukan parsial diam).
-    async _pullAll(table, orderCol, ascending) {
+    // filterFn (opsional): terima query builder, kembalikan builder yang sudah difilter.
+    async _pullAll(table, orderCol, ascending, filterFn) {
       var PAGE = 1000, from = 0, all = [];
       for (;;) {
-        var res = await sb.from(table).select('*')
+        var q = sb.from(table).select('*');
+        if (filterFn) q = filterFn(q);
+        var res = await q
           .order(orderCol, { ascending: ascending !== false })
           .order('id', { ascending: true })
           .range(from, from + PAGE - 1);
@@ -112,7 +117,11 @@
     },
     async pullMembers() { return (await this._pullAll('members', 'nama', true)).map(rowToMem); },
     async pullBooks()   { return (await this._pullAll('books', 'judul', true)).map(rowToBook); },
-    async pullLoans()   { return (await this._pullAll('loans', 'created_at', false)).map(rowToLoan); },
+    // delete_loan sekarang soft-cancel (histori transaksi tidak boleh hilang). Baris CANCELLED
+    // disaring di sini supaya tampilan petugas tetap sama persis seperti sebelumnya:
+    // catatan yang "dihapus" lenyap dari daftar, tetapi tetap utuh di database.
+    async pullLoans()   { return (await this._pullAll('loans', 'created_at', false,
+                            function (q) { return q.neq('status', 'CANCELLED'); })).map(rowToLoan); },
 
     // ---------- PUBLIC (anon) ----------
     // Catalog is public (RLS books_read_all). Paginated so ALL rows load, not capped at 1000.
@@ -198,13 +207,16 @@
       }
 
       // ---- build legacy-id -> uuid maps for loan FKs (from what actually landed on the server) ----
+      // PostgREST memotong response di ~1000 baris. Katalog sudah 1548 buku, sehingga
+      // select polos membuat ratusan buku tak terpetakan dan loan-nya salah dilaporkan
+      // sebagai "buku tidak ditemukan". Pakai _pullAll yang sudah paginasi.
       var mMap = {}, bMap = {};
       try {
-        throwIf(await sb.from('members').select('id,legacy_id,barcode_id')).forEach(function (r) {
+        (await this._pullAll('members', 'id', true)).forEach(function (r) {
           if (r.legacy_id) mMap[r.legacy_id] = r.id;
           if (r.barcode_id) mMap['bc:' + r.barcode_id] = r.id;
         });
-        throwIf(await sb.from('books').select('id,legacy_id,kode')).forEach(function (r) {
+        (await this._pullAll('books', 'id', true)).forEach(function (r) {
           if (r.legacy_id) bMap[r.legacy_id] = r.id;
           if (r.kode) bMap['kode:' + r.kode] = r.id;
         });
