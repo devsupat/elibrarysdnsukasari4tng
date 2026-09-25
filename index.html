@@ -2331,7 +2331,9 @@ function setTitleCoverPreview(prefix, title){
 }
 
 function hapusCoverUbah(){
-  ubCoverBlob = null; ubCoverDelete = true; ubCoverPath = '';
+  // ubCoverPath JANGAN dikosongkan: saat simpan, path itulah yang dipakai untuk
+  // menghapus file cover di storage. Dikosongkan = baris DB bersih tapi file jadi sampah.
+  ubCoverBlob = null; ubCoverDelete = true;
   $('ubCoverFile').value = '';
   coverPreview('ubCoverPreview', '');
 }

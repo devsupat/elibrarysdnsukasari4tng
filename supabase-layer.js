@@ -102,6 +102,10 @@
     if (/SESI_TIDAK_AKTIF/.test(m)) return 'Sesi kelas sudah ditutup. Buka sesi baru dulu.';
     if (/KELAS_WAJIB_DIISI/.test(m)) return 'Kelas wajib diisi untuk peminjaman ke kelas.';
     if (/row-level security|permission denied/.test(m)) return 'Akses ditolak — login sebagai petugas dulu.';
+    // Cover: petugas tidak boleh melihat istilah teknis Supabase/PostgREST.
+    if (/[Bb]ucket not found|PGRST204|cover_path/.test(m)) return 'Penyimpanan cover belum siap. Hubungi admin.';
+    if (/mime type|maximum allowed size|Payload too large|entity too large/i.test(m)) return 'Gambar cover ditolak penyimpanan. Pakai JPG/PNG/WebP ukuran wajar.';
+    if (/[Ss]torage|[Oo]bject not found|NoSuchKey/.test(m)) return 'Cover gagal disimpan. Silakan coba lagi.';
     return m;
   }
   function throwIf(res) { if (res.error) throw res.error; return res.data; }

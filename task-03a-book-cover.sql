@@ -1,18 +1,24 @@
 -- TASK 03A: one optimized cover reference per bibliographic title.
--- Apply in Supabase SQL editor before enabling cover upload.
+-- STATUS: sudah diterapkan ke runtime Supabase (migration: task_03a_book_cover_storage).
+-- File ini disimpan sebagai catatan/reproducible setup untuk project baru.
+--
+-- Catatan: policy SELECT public.titles TIDAK disentuh — project sudah punya
+-- titles_read_all (anon, authenticated). Menambah policy read kedua hanya bikin bingung.
 
 alter table public.titles
   add column if not exists cover_path text;
 
-drop policy if exists "titles public read" on public.titles;
-create policy "titles public read"
-  on public.titles for select to anon, authenticated
-  using (true);
+-- Bucket publik: cover katalog harus tampil untuk pengunjung anonim.
+-- Batas 1 MB + mime image saja = pagar terakhir bila optimizer di browser dilewati.
+-- (optimizeCover() menghasilkan WebP ±80 KB pada 900px, quality 0.82.)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('book-covers', 'book-covers', true, 1048576, array['image/webp','image/jpeg','image/png'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
-insert into storage.buckets (id, name, public)
-values ('book-covers', 'book-covers', true)
-on conflict (id) do update set public = excluded.public;
-
+-- Baca: siapa pun (katalog publik). Tulis/ganti/hapus: hanya petugas yang login.
 drop policy if exists "book covers public read" on storage.objects;
 create policy "book covers public read"
   on storage.objects for select
@@ -33,3 +39,11 @@ drop policy if exists "book covers staff delete" on storage.objects;
 create policy "book covers staff delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'book-covers');
+
+-- Verifikasi runtime:
+--   select count(*) from information_schema.columns
+--     where table_name='titles' and column_name='cover_path';        -- 1
+--   select id, public, file_size_limit from storage.buckets
+--     where id='book-covers';                                        -- 1 baris, public=true
+--   select count(*) from pg_policies
+--     where tablename='objects' and policyname like 'book covers%';   -- 4
