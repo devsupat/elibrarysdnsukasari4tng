@@ -760,7 +760,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
     <div class="pub-stat-card">
       <div class="ico">📚</div>
-      <div class="num" id="pubStatBooks">1.548+</div>
+      <div class="num" id="pubStatBooks">…</div>
       <div class="lbl">Judul Buku</div>
       <div class="sub-hint">Koleksi Fiksi, Sains, &amp; Pelajaran</div>
     </div>
@@ -788,7 +788,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <div class="feature-icon">📖</div>
       <div class="feature-body">
         <h3>Katalog Buku Digital</h3>
-        <p>Cari &amp; cek ketersediaan 1.548+ judul buku perpustakaan secara real-time.</p>
+        <p>Cari &amp; cek ketersediaan 1.500+ eksemplar buku perpustakaan secara real-time.</p>
         <span class="link-label">Lihat Katalog →</span>
       </div>
     </div>
@@ -887,7 +887,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
       <div>
         <h2>📖 Koleksi Buku Terbaru</h2>
-        <p class="subtitle" style="margin-bottom:0">Jelajahi 1.548+ Koleksi Buku Fiksi, Sains, Ensiklopedia &amp; Pelajaran</p>
+        <p class="subtitle" style="margin-bottom:0">Jelajahi 1.500+ Eksemplar Buku Fiksi, Sains, Ensiklopedia &amp; Pelajaran</p>
       </div>
       <button class="btn green" onclick="goPage('pub-katalog')">Jelajahi Seluruh Koleksi →</button>
     </div>
@@ -930,7 +930,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <div class="page" id="page-pub-katalog">
   <div class="card">
     <h2>📖 Katalog Buku Perpustakaan</h2>
-    <p class="subtitle">Cari dan cek status ketersediaan 1.548+ judul buku secara publik tanpa perlu login.</p>
+    <p class="subtitle">Cari dan cek status ketersediaan 1.500+ eksemplar buku secara publik tanpa perlu login.</p>
     <div class="search-bar">
       <input type="text" id="pubBookSearchInput" placeholder="🔍 Cari judul buku, pengarang, atau kode buku...">
       <select id="pubBookCatSelect">
@@ -943,7 +943,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
   </div>
   <div class="card alt">
-    <h3>📚 Hasil Pencarian Katalog <span class="badge b-blue" id="pubBookCountBadge">1.548 Buku</span></h3>
+    <h3>📚 Hasil Pencarian Katalog <span class="badge b-blue" id="pubBookCountBadge">… Buku</span></h3>
     <div class="squiggle"></div>
     <div class="grid3" id="pubBookListGrid">
       <div class="pub-book-card">
@@ -3566,11 +3566,14 @@ function renderAttendanceHistory(){
    renderDashboard() dan renderStats() supaya satu panggilan cukup untuk dua halaman. */
 let STATS = null;          // payload dashboard_stats terakhir
 let statPeriode = 30;      // hari; 0 = seluruh waktu
-let _statsSibuk = false;
+let _statsSibuk = false, _statsTertunda = false;
 
 async function refreshStats(){
   if(!SB_ENABLED || !SB_USER){ STATS = null; renderDashboard(); renderStats(); return; }
-  if(_statsSibuk) return;
+  // Permintaan yang datang saat tarikan lain berjalan TIDAK boleh dibuang: kalau
+  // dibuang, petugas yang mengganti periode tidak akan pernah melihat angkanya
+  // berubah. Pola sama dengan sbRealtimeRefresh: tandai tertunda, lalu susul.
+  if(_statsSibuk){ _statsTertunda = true; return; }
   _statsSibuk = true;
   try{
     STATS = await LibraryAPI.dashboard(statPeriode);
@@ -3580,6 +3583,7 @@ async function refreshStats(){
     toast('⚠️ Statistik gagal dimuat: '+LibraryAPI.msg(e));
   }finally{ _statsSibuk = false; }
   renderDashboard(); renderStats();
+  if(_statsTertunda){ _statsTertunda = false; refreshStats(); }   // state akhir selalu tersusul
 }
 
 function setStatPeriode(days){
@@ -3653,9 +3657,13 @@ function renderStats(){
   if(b30)  b30.className  = 'btn small' + (statPeriode===30 ? '' : ' ghost');
   if(bAll) bAll.className = 'btn small' + (statPeriode===0  ? '' : ' ghost');
 
+  // Label periode dibaca dari payload, bukan dari variabel pilihan, supaya angka
+  // dan keterangannya tidak pernah bercerita berbeda saat data masih dimuat.
   const hint = $('statPeriodeHint');
+  const aktifP = STATS ? STATS.periode_hari : null;
   if(hint) hint.textContent = !STATS ? 'Butuh koneksi database online.'
-    : (statPeriode===0 ? 'Periode: seluruh waktu.' : ('Periode: 30 hari terakhir, sejak ' + fmtDateLong(STATS.periode_sejak) + '.'));
+    : (aktifP === 0 ? 'Periode: seluruh waktu.' : ('Periode: ' + aktifP + ' hari terakhir, sejak ' + fmtDateLong(STATS.periode_sejak) + '.'))
+      + (aktifP !== statPeriode ? ' · memuat…' : '');
 
   const tb = $('topBooks'), tp = $('topBorrowers'), cc = $('classChart'), tr = $('trenChart');
   if(!STATS){
