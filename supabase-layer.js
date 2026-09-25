@@ -310,6 +310,26 @@
     },
     async deleteLoan(loanId) { throwIf(await sb.rpc('delete_loan', { p_loan_id: loanId })); },
 
+    // ---------- dashboard petugas (agregasi di server) ----------
+    // Satu panggilan untuk seluruh dashboard. RPC-nya SECURITY INVOKER: isinya memuat
+    // nama siswa, jadi RLS authenticated yang menjaga — anon tidak akan menerima apa pun.
+    // days = 0 berarti seluruh waktu.
+    coverUrl: coverUrl,
+
+    async dashboard(days) { return throwIf(await sb.rpc('dashboard_stats', { p_days: days === undefined ? 30 : days })); },
+
+    // Kunjungan: satu member maksimal satu baris per tanggal (upsert di dalam RPC),
+    // jadi memanggilnya berkali-kali dalam sehari aman.
+    async catatKunjungan(memberId) { return throwIf(await sb.rpc('catat_kunjungan', { p_member_id: memberId })); },
+
+    // Daftar pengunjung hari ini — kecil, tidak menarik histori kunjungan.
+    async visitsToday(limit) {
+      var res = await sb.from('visits').select('member_id,nama,kelas,pertama_at,terakhir_at,jumlah_scan')
+        .eq('tanggal', new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
+        .order('terakhir_at', { ascending: false }).limit(limit || 10);
+      return throwIf(res);
+    },
+
     // ---------- public (anon-safe aggregates) ----------
     async stats() { return throwIf(await sb.rpc('public_stats')); },
     async popular(limit) {

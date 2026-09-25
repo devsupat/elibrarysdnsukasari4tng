@@ -205,6 +205,23 @@ tr:hover td{background:var(--sky)}
 .rank .info span{font-size:12px; color:#4a6bb5; font-weight:700}
 .rank .count{font-family:'Patrick Hand',cursive; font-size:20px; color:var(--blue)}
 .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+/* Judul seksi dashboard: memisahkan "hari ini" dari "kondisi koleksi" tanpa menambah kartu. */
+.sec-head{font-family:'Patrick Hand',cursive; font-size:22px; color:var(--blue-dark); margin:4px 0 10px}
+.sec-sub{font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; color:#4a6bb5}
+/* Angka koleksi: ringkas dalam satu kartu, bukan tujuh kartu besar berjajar. */
+.mini-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:10px; margin-top:4px}
+.mini{background:var(--sky); border:2px solid var(--line); border-radius:12px; padding:9px 6px; text-align:center}
+.mini b{display:block; font-family:'Patrick Hand',cursive; font-size:25px; color:var(--blue); line-height:1.1}
+.mini span{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:#4a6bb5}
+/* Grafik batang: CSS murni, tanpa library chart tambahan. */
+.bar-row{display:flex; align-items:center; gap:8px; margin:5px 0}
+.bar-row .bk{width:78px; flex-shrink:0; font-family:'Patrick Hand',cursive; font-size:16px; color:var(--blue-dark)}
+.bar-track{flex:1; background:var(--sky); border:2px solid var(--line); border-radius:10px; overflow:hidden; min-width:0}
+.bar-fill{background:var(--blue); color:#fff; padding:3px 8px; font-size:12px; font-weight:800; border-radius:8px; white-space:nowrap}
+.bar-fill.b2{background:#1e874b}
+.bar-fill.b3{background:#c47f17}
+.tren-legend{display:flex; gap:12px; flex-wrap:wrap; font-size:12px; font-weight:800; color:#4a6bb5; margin-bottom:8px}
+.tren-legend i{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:4px; vertical-align:-1px}
 .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px}
 
 .hint{font-size:12.5px; background:var(--sky); border:2px dashed var(--blue); border-radius:12px;
@@ -1180,13 +1197,21 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <main>
 <!-- ============ BERANDA ============ -->
 <div class="page active" id="page-beranda">
+  <!-- SECTION 1 — hanya angka hari ini, supaya petugas tahu kondisi jam kerja ini -->
+  <h2 class="sec-head">📅 Ringkasan Hari Ini <span class="sec-sub" id="dashTanggal"></span></h2>
   <div class="stat-grid">
-    <div class="stat"><div class="ico">👧</div><div class="num" id="stAnggota">0</div><div class="lbl">Anggota</div></div>
-    <div class="stat"><div class="ico">🧑</div><div class="num" id="stNon">0</div><div class="lbl">Non-Anggota</div></div>
-    <div class="stat"><div class="ico">📖</div><div class="num" id="stBuku">0</div><div class="lbl">Eksemplar Buku</div><div class="sub-hint" id="stJudul"></div></div>
+    <div class="stat"><div class="ico">🖐️</div><div class="num" id="stKunjungan">0</div><div class="lbl">Kunjungan</div><div class="sub-hint">pengunjung unik hari ini</div></div>
+    <div class="stat"><div class="ico">📖</div><div class="num" id="stBaca">0</div><div class="lbl">Baca di Tempat</div></div>
+    <div class="stat"><div class="ico">🏠</div><div class="num" id="stPinjamHariIni">0</div><div class="lbl">Pinjam Pulang</div><div class="sub-hint" id="stPinjamKelas"></div></div>
+    <div class="stat"><div class="ico">↩️</div><div class="num" id="stKembaliHariIni">0</div><div class="lbl">Pengembalian</div></div>
+  </div>
+
+  <!-- SECTION 3 — pinjaman aktif lebih mendesak daripada kondisi koleksi, jadi lebih dulu -->
+  <h2 class="sec-head">🔄 Pinjaman Aktif</h2>
+  <div class="stat-grid">
     <div class="stat"><div class="ico">🔄</div><div class="num" id="stPinjam">0</div><div class="lbl">Sedang Dipinjam</div></div>
     <div class="stat"><div class="ico">⏰</div><div class="num" id="stTelat">0</div><div class="lbl">Terlambat</div></div>
-    <div class="stat"><div class="ico">🖐️</div><div class="num" id="stHadir">0</div><div class="lbl">Pengunjung Hari Ini</div></div>
+    <div class="stat"><div class="ico">📌</div><div class="num" id="stJatuhTempo">0</div><div class="lbl">Jatuh Tempo Hari Ini</div></div>
   </div>
 
   <div class="grid2">
@@ -1199,10 +1224,26 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <button class="btn yellow" onclick="goPage('data')">📤 Ekspor Data</button>
     </div>
     <div class="card alt">
-      <h2>⏰ Perlu Dikembalikan / Terlambat</h2>
+      <h2>⏰ Pinjaman Terlambat</h2>
       <div class="squiggle"></div>
-      <div id="berandaTelat" style="max-height:230px; overflow-y:auto"></div>
+      <div id="berandaTelat" style="max-height:260px; overflow-y:auto"></div>
     </div>
+  </div>
+
+  <!-- SECTION 2 — kondisi koleksi: status_copy apa adanya, 0 tetap ditulis 0 -->
+  <div class="card">
+    <h2>📚 Kondisi Koleksi</h2>
+    <div class="squiggle"></div>
+    <div class="mini-grid">
+      <div class="mini"><b id="kolJudul">0</b><span>Judul</span></div>
+      <div class="mini"><b id="kolEksemplar">0</b><span>Eksemplar</span></div>
+      <div class="mini"><b id="kolTersedia">0</b><span>Tersedia</span></div>
+      <div class="mini"><b id="kolDipinjam">0</b><span>Dipinjam</span></div>
+      <div class="mini"><b id="kolRusak">0</b><span>Rusak</span></div>
+      <div class="mini"><b id="kolHilang">0</b><span>Hilang</span></div>
+      <div class="mini"><b id="kolPensiun">0</b><span>Pensiun</span></div>
+    </div>
+    <div class="hint" id="kolHint"></div>
   </div>
 
   <div class="card">
@@ -1674,20 +1715,28 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <div class="page" id="page-statistik">
   <div class="card">
     <h2>📊 Statistik Perpustakaan</h2>
-    <p class="subtitle">Siapa yang paling rajin ke perpustakaan? 🏆 (termasuk guru &amp; tamu yang berkunjung)</p>
+    <p class="subtitle">Dihitung dari transaksi yang benar-benar tercatat: peminjaman, aktivitas baca, dan kunjungan.</p>
     <div class="pill-tabs">
-      <button class="btn small" id="statBtnBulan" onclick="statMode='bulan';renderStats()">📅 Bulan Ini</button>
-      <button class="btn small ghost" id="statBtnSemua" onclick="statMode='semua';renderStats()">🗓️ Semua Waktu</button>
+      <button class="btn small" id="statBtn30" onclick="setStatPeriode(30)">📅 30 Hari Terakhir</button>
+      <button class="btn small ghost" id="statBtnSemua" onclick="setStatPeriode(0)">🗓️ Semua Waktu</button>
     </div>
+    <div class="hint" id="statPeriodeHint"></div>
   </div>
-  <div class="grid3">
-    <div class="card"><h3>🖐️ Pengunjung Paling Sering</h3><div class="squiggle"></div><div id="topVisitors"></div></div>
-    <div class="card alt"><h3>📖 Peminjam Paling Sering</h3><div class="squiggle"></div><div id="topBorrowers"></div></div>
-    <div class="card"><h3>⭐ Buku Paling Sering Dibaca/Dipinjam</h3><div class="squiggle"></div><div id="topBooks"></div></div>
+  <div class="grid2">
+    <div class="card"><h3>⭐ Buku Paling Sering Dipinjam</h3><div class="squiggle"></div><div id="topBooks"></div></div>
+    <div class="card alt"><h3>🏅 Peminjam Paling Aktif</h3><div class="squiggle"></div><div id="topBorrowers"></div></div>
+  </div>
+  <div class="card">
+    <h3>📈 Aktivitas Per Kelas</h3>
+    <p class="subtitle">Peminjaman untuk kelas dihitung pada kelas yang memakai bukunya, bukan kelas siswa perwakilan.</p>
+    <div class="squiggle"></div>
+    <div id="classChart"></div>
   </div>
   <div class="card alt">
-    <h3>📈 Rekap Per Kelas (kunjungan)</h3><div class="squiggle"></div>
-    <div id="classChart"></div>
+    <h3>📉 Tren 30 Hari Terakhir</h3>
+    <div class="squiggle"></div>
+    <div id="trenChart"></div>
+    <div class="hint">Kunjungan hanya dihitung dari absensi yang tercatat di database. Hari sebelum fitur ini aktif tampil 0.</div>
   </div>
 </div>
 
@@ -2911,6 +2960,7 @@ function scTerimaSiswa(kodeMentah){
   $('scLangkahSiswa').style.display='none';
   $('scSesiSiswa').style.display='';
   scRenderRingkas();
+  catatKunjunganServer(m);
   toast('✅ '+m.nama);
 }
 
@@ -3328,6 +3378,17 @@ function printStruk(){
 }
 
 /* =================== VISITS (ABSENSI) =================== */
+/* Kunjungan adalah sumber angka dashboard, jadi harus tercatat di database —
+   bukan hanya di localStorage perangkat ini. RPC-nya upsert per (member, tanggal),
+   jadi aman dipanggil berkali-kali. Sengaja tidak di-await: kegagalan jaringan
+   tidak boleh menahan petugas yang sedang melayani antrean. */
+function catatKunjunganServer(m){
+  if(!SB_ENABLED || !SB_USER || !m || !m.id || /^M\d/.test(m.id)) { renderDashboard(); return; }
+  LibraryAPI.catatKunjungan(m.id)
+    .then(()=>refreshStats())
+    .catch(e=>console.error('catat kunjungan', e));
+}
+
 let visitLimit = 50;
 function saveVisit(){
   const mid = $('aId').value;
@@ -3349,7 +3410,8 @@ function saveVisit(){
     aktivitas:$('aAktivitas').value, buku:$('aBuku').value.trim(), ket:$('aKet').value.trim() });
   saveDB();
   ['aNama','aId','aBuku','aKet'].forEach(i=>$(i).value='');
-  renderVisits(); renderDashboard();
+  renderVisits();
+  catatKunjunganServer(m);
   toast('✅ Kehadiran '+m.nama+' tercatat jam '+pad(now.getHours())+':'+pad(now.getMinutes()));
 }
 function delVisit(id){
@@ -3498,93 +3560,147 @@ function renderAttendanceHistory(){
 ['asSearch','asFilterTgl'].forEach(i=>$(i).addEventListener('input',()=>renderAttendanceHistory()));
 
 /* =================== DASHBOARD =================== */
+/* Dashboard & statistik memakai SATU payload agregat dari server (RPC dashboard_stats).
+   Browser tidak pernah menghitung COUNT/GROUP BY atas seluruh histori: yang dikirim
+   server hanya angka jadi + beberapa baris teratas. STATS dipakai bersama oleh
+   renderDashboard() dan renderStats() supaya satu panggilan cukup untuk dua halaman. */
+let STATS = null;          // payload dashboard_stats terakhir
+let statPeriode = 30;      // hari; 0 = seluruh waktu
+let _statsSibuk = false;
+
+async function refreshStats(){
+  if(!SB_ENABLED || !SB_USER){ STATS = null; renderDashboard(); renderStats(); return; }
+  if(_statsSibuk) return;
+  _statsSibuk = true;
+  try{
+    STATS = await LibraryAPI.dashboard(statPeriode);
+    try{ STATS.pengunjung = await LibraryAPI.visitsToday(8); }catch(_){ STATS.pengunjung = []; }
+  }catch(e){
+    console.error('dashboard stats', e);
+    toast('⚠️ Statistik gagal dimuat: '+LibraryAPI.msg(e));
+  }finally{ _statsSibuk = false; }
+  renderDashboard(); renderStats();
+}
+
+function setStatPeriode(days){
+  statPeriode = days;
+  refreshStats();
+}
+
+const numOr0 = v => (v === null || v === undefined || isNaN(v)) ? 0 : v;
+function setNum(id, v){ const el = $(id); if(el) el.textContent = numOr0(v); }
+const kosong = msg => `<p style="padding:14px;text-align:center;color:#4a6bb5">${msg}</p>`;
+
 function renderDashboard(){
-  $('stAnggota').textContent = DB.members.filter(m=>m.status==='Anggota').length;
-  $('stNon').textContent = DB.members.filter(m=>m.status==='Non-Anggota').length;
-  // eksemplar fisik vs judul adalah dua angka berbeda; jangan disamakan
-  $('stBuku').textContent = DB.books.length;
-  const sj = $('stJudul');
-  if(sj){
-    const nJudul = new Set(DB.books.map(b=>b.titleId || ('~'+b.judul))).size;
-    sj.textContent = nJudul + ' judul';
-  }
-  const active = DB.loans.filter(l=>!l.kembali);
-  $('stPinjam').textContent = active.length;
-  const late = active.filter(l=>loanStatus(l)==='TERLAMBAT-AKTIF');
-  $('stTelat').textContent = late.length;
-  $('stHadir').textContent = DB.visits.filter(v=>v.tgl===todayStr()).length;
-  // telat list
-  const soon = active.slice().sort((a,b)=>a.batas.localeCompare(b.batas)).slice(0,8);
-  $('berandaTelat').innerHTML = soon.map(l=>{
-    const st = loanStatus(l);
-    return `<div class="rank"><div class="info"><b>${esc(l.judul)}</b>
-      <span>${esc(l.nama)} (${esc(l.kelas)}) · batas ${fmtDate(l.batas)}</span></div>${statusBadge(st)}</div>`;
-  }).join('') || '<p style="padding:10px;text-align:center">🎉 Tidak ada pinjaman aktif.</p>';
-  // recent visits
-  const today = DB.visits.filter(v=>v.tgl===todayStr()).slice(0,8);
-  $('berandaVisit').innerHTML = today.map(v=>`<tr><td>${v.jam}</td><td><b>${esc(v.nama)}</b></td><td>${esc(v.kelas)||'-'}</td><td>${esc(v.aktivitas)}</td></tr>`).join('')
-    || '<tr><td colspan="4" style="text-align:center;padding:16px">Belum ada pengunjung hari ini.</td></tr>';
+  const belum = !STATS;
+  const h = (STATS && STATS.hari_ini) || {};
+  const k = (STATS && STATS.koleksi) || {};
+  const pj = (STATS && STATS.pinjaman) || {};
+
+  const tgl = $('dashTanggal');
+  if(tgl) tgl.textContent = STATS ? ('· ' + fmtDateLong(STATS.tanggal)) : '';
+
+  setNum('stKunjungan', h.kunjungan);
+  setNum('stBaca', h.baca_ditempat);
+  setNum('stPinjamHariIni', h.pinjam_pulang);
+  setNum('stKembaliHariIni', h.pengembalian);
+  const pk = $('stPinjamKelas');
+  if(pk) pk.textContent = numOr0(h.pinjam_kelas) ? ('+ ' + h.pinjam_kelas + ' untuk kelas') : '';
+
+  setNum('kolJudul', k.judul); setNum('kolEksemplar', k.eksemplar);
+  setNum('kolTersedia', k.tersedia); setNum('kolDipinjam', k.dipinjam);
+  setNum('kolRusak', k.rusak); setNum('kolHilang', k.hilang); setNum('kolPensiun', k.pensiun);
+  const kh = $('kolHint');
+  if(kh) kh.textContent = belum ? 'Statistik butuh koneksi database online.'
+    : (numOr0(k.tanpa_judul) ? ('ℹ️ ' + k.tanpa_judul + ' eksemplar belum ditautkan ke judul mana pun.') : '');
+
+  setNum('stPinjam', pj.aktif); setNum('stTelat', pj.terlambat); setNum('stJatuhTempo', pj.jatuh_tempo_hari_ini);
+
+  // Daftar terlambat: server sudah membatasi 10 baris, bukan seluruh histori loan.
+  const telat = (STATS && STATS.terlambat_list) || [];
+  $('berandaTelat').innerHTML = belum ? kosong('Butuh koneksi database online.')
+    : (telat.map(l=>`<div class="rank"><div class="info"><b>${esc(l.judul)}</b>
+        <span>${esc(l.nama)} (${esc(l.kelas)}) · pinjam ${fmtDate(l.pinjam)} · jatuh tempo ${fmtDate(l.batas)}</span></div>
+        <div class="count">${l.hari_telat}<small style="font-size:11px">hari</small></div></div>`).join('')
+      || kosong('🎉 Tidak ada pinjaman terlambat.'));
+
+  const pengunjung = (STATS && STATS.pengunjung) || [];
+  $('berandaVisit').innerHTML = belum ? '<tr><td colspan="4" style="text-align:center;padding:16px">Butuh koneksi database online.</td></tr>'
+    : (pengunjung.map(v=>`<tr><td>${esc(jamWIB(v.terakhir_at))}</td><td><b>${esc(v.nama)}</b></td><td>${esc(v.kelas)||'-'}</td>
+        <td>${v.jumlah_scan > 1 ? (v.jumlah_scan + 'x scan') : 'hadir'}</td></tr>`).join('')
+      || '<tr><td colspan="4" style="text-align:center;padding:16px">Belum ada kunjungan hari ini.</td></tr>');
+}
+
+function jamWIB(iso){
+  if(!iso) return '-';
+  try{ return new Date(iso).toLocaleTimeString('id-ID', { timeZone:'Asia/Jakarta', hour:'2-digit', minute:'2-digit' }); }
+  catch(e){ return '-'; }
 }
 
 /* =================== STATISTIK =================== */
-let statMode = 'bulan';
-function inPeriod(iso){
-  if(statMode==='semua') return true;
-  const now = new Date();
-  return iso && iso.startsWith(now.getFullYear()+'-'+pad(now.getMonth()+1));
+/* Semua angka di bawah berasal dari STATS (server). Tidak ada perhitungan ulang
+   atas histori di browser — lihat catatan di refreshStats(). */
+function barRows(rows, labelKey, valueKey, cls){
+  const max = rows.reduce((m,r)=>Math.max(m, r[valueKey]||0), 0) || 1;
+  return rows.map(r=>`<div class="bar-row">
+    <b class="bk">${esc(String(r[labelKey]||'-'))}</b>
+    <div class="bar-track"><div class="bar-fill ${cls||''}" style="width:${Math.max(6,Math.round((r[valueKey]||0)/max*100))}%">${r[valueKey]||0}</div></div>
+  </div>`).join('');
 }
-function topList(counts, el, unit){
-  const arr = Object.values(counts).sort((a,b)=>b.n-a.n).slice(0,10);
-  $(el).innerHTML = arr.map((x,i)=>`<div class="rank">
-    <div class="medal">${i<3?['🥇','🥈','🥉'][i]:(i+1)}</div>
-    ${x.coverUrl ? bookCoverHTML(x.coverUrl, '📖', 'rank-cover') : ''}
-    <div class="info"><b>${esc(x.label)}</b><span>${esc(x.sub)}</span></div>
-    <div class="count">${x.n}<small style="font-size:11px">${unit}</small></div></div>`).join('')
-    || '<p style="padding:14px;text-align:center">Belum ada data untuk periode ini.</p>';
-}
+
 function renderStats(){
-  $('statBtnBulan').className = 'btn small' + (statMode==='bulan'?'':' ghost');
-  $('statBtnSemua').className = 'btn small' + (statMode==='semua'?'':' ghost');
-  // visitors
-  const vc = {};
-  DB.visits.filter(v=>inPeriod(v.tgl)).forEach(v=>{
-    const k = v.nama+'|'+v.kelas;
-    vc[k] = vc[k] || { label:v.nama, sub:(v.kelas||'-')+' · '+(v.tipe||'Siswa'), n:0 };
-    vc[k].n++;
-  });
-  topList(vc, 'topVisitors', 'x');
-  // borrowers
-  const bc = {};
-  DB.loans.filter(l=>inPeriod(l.pinjam)).forEach(l=>{
-    const k = l.nama+'|'+l.kelas;
-    bc[k] = bc[k] || { label:l.nama, sub:l.kelas||'-', n:0 };
-    bc[k].n++;
-  });
-  topList(bc, 'topBorrowers', 'x');
-  // books: loans + reading visits
-  const kc = {};
-  DB.loans.filter(l=>inPeriod(l.pinjam)).forEach(l=>{
-    const copy = DB.books.find(b=>b.id===l.bookId || b.kode===l.kode);
-    const title = copy && DB.titles.find(t=>t.id===copy.titleId);
-    kc[l.judul] = kc[l.judul] || { label:l.judul, sub:'Kode: '+(l.kode||'-'), coverUrl:title&&title.coverUrl, n:0 }; kc[l.judul].n++;
-  });
-  DB.visits.filter(v=>inPeriod(v.tgl) && v.buku).forEach(v=>{
-    const j = v.buku.toUpperCase();
-    const title = DB.titles.find(t=>(t.judul||'').toUpperCase()===j);
-    kc[j] = kc[j] || { label:j, sub:'dibaca di tempat', coverUrl:title&&title.coverUrl, n:0 }; kc[j].n++;
-  });
-  topList(kc, 'topBooks', 'x');
-  // per class
-  const cc = {};
-  DB.visits.filter(v=>inPeriod(v.tgl) && v.kelas).forEach(v=>{ cc[v.kelas]=(cc[v.kelas]||0)+1; });
-  const entries = Object.entries(cc).sort((a,b)=>b[1]-a[1]);
-  const max = entries.length ? entries[0][1] : 1;
-  $('classChart').innerHTML = entries.map(([k,n])=>`
-    <div style="display:flex;align-items:center;gap:8px;margin:5px 0">
-      <b style="width:52px;font-family:'Patrick Hand',cursive;font-size:17px">${esc(k)}</b>
-      <div style="flex:1;background:var(--sky);border-radius:10px 4px 10px 4px;border:2px solid var(--line);overflow:hidden">
-        <div style="width:${Math.max(4,Math.round(n/max*100))}%;background:var(--blue);color:#fff;padding:3px 8px;font-size:12px;font-weight:800;border-radius:8px 2px 8px 2px">${n}</div>
-      </div></div>`).join('') || '<p style="text-align:center;padding:10px">Belum ada data kunjungan.</p>';
+  const b30 = $('statBtn30'), bAll = $('statBtnSemua');
+  if(b30)  b30.className  = 'btn small' + (statPeriode===30 ? '' : ' ghost');
+  if(bAll) bAll.className = 'btn small' + (statPeriode===0  ? '' : ' ghost');
+
+  const hint = $('statPeriodeHint');
+  if(hint) hint.textContent = !STATS ? 'Butuh koneksi database online.'
+    : (statPeriode===0 ? 'Periode: seluruh waktu.' : ('Periode: 30 hari terakhir, sejak ' + fmtDateLong(STATS.periode_sejak) + '.'));
+
+  const tb = $('topBooks'), tp = $('topBorrowers'), cc = $('classChart'), tr = $('trenChart');
+  if(!STATS){
+    [tb,tp,cc,tr].forEach(el=>{ if(el) el.innerHTML = kosong('Butuh koneksi database online.'); });
+    return;
+  }
+
+  // Buku paling sering DIPINJAM (bukan "paling banyak dibaca" — sistem tidak punya buktinya).
+  const pop = STATS.populer || [];
+  if(tb) tb.innerHTML = pop.map((x,i)=>`<div class="rank">
+      <div class="medal">${i<3?['🥇','🥈','🥉'][i]:(i+1)}</div>
+      ${x.cover_path ? bookCoverHTML(LibraryAPI.coverUrl(x.cover_path), '📖', 'rank-cover') : ''}
+      <div class="info"><b>${esc(x.judul)}</b><span>dipinjam pada periode ini</span></div>
+      <div class="count">${x.dipinjam}<small style="font-size:11px">x</small></div></div>`).join('')
+    || kosong('Belum ada peminjaman pada periode ini.');
+
+  // Peminjam paling aktif — CLASS_LOAN sengaja tidak dihitung sebagai aktivitas pribadi.
+  const orang = STATS.peminjam_aktif || [];
+  if(tp) tp.innerHTML = (orang.length < 3 ? '' : orang.map((x,i)=>`<div class="rank">
+      <div class="medal">${i<3?['🥇','🥈','🥉'][i]:(i+1)}</div>
+      <div class="info"><b>${esc(x.nama)}</b><span>${esc(x.kelas)}</span></div>
+      <div class="count">${x.aktivitas}<small style="font-size:11px">x</small></div></div>`).join(''))
+    || kosong(orang.length ? 'Data periode ini terlalu sedikit untuk membuat peringkat.' : 'Belum ada aktivitas pada periode ini.');
+
+  const kelas = STATS.per_kelas || [];
+  if(cc) cc.innerHTML = kelas.length ? barRows(kelas, 'kelas', 'aktivitas')
+    : kosong('Belum ada aktivitas pada periode ini.');
+
+  // Tren: tiga deret dalam satu daftar harian, hanya hari yang ada datanya diberi warna.
+  const tren = STATS.tren || [];
+  const adaTren = tren.some(t=>t.kunjungan||t.pinjam||t.kembali);
+  if(tr) tr.innerHTML = !adaTren ? kosong('Belum ada aktivitas tercatat pada 30 hari terakhir.')
+    : `<div class="tren-legend">
+         <span><i style="background:var(--blue)"></i>Kunjungan</span>
+         <span><i style="background:#1e874b"></i>Pinjam</span>
+         <span><i style="background:#c47f17"></i>Kembali</span>
+       </div>` + (()=>{
+         const max = tren.reduce((m,t)=>Math.max(m, t.kunjungan, t.pinjam, t.kembali), 0) || 1;
+         return tren.filter(t=>t.kunjungan||t.pinjam||t.kembali).map(t=>`<div class="bar-row">
+           <b class="bk">${esc(fmtDate(t.tanggal))}</b>
+           <div class="bar-track" style="display:flex;gap:2px;padding:2px">
+             ${[['kunjungan',''],['pinjam','b2'],['kembali','b3']].filter(([k])=>t[k]).map(([k,c])=>
+               `<div class="bar-fill ${c}" style="width:${Math.max(8,Math.round(t[k]/max*100))}%" title="${k}">${t[k]}</div>`).join('')}
+           </div></div>`).join('');
+       })();
 }
 
 /* =================== EBOOK =================== */
@@ -4143,6 +4259,7 @@ function applyThumb(){
 function renderAll(){
   renderTitleDatalist(); renderReviewJudul();
   renderMembers(); renderBooks(); renderLoans(); renderActiveLoans(); renderVisits(); renderDashboard(); renderStats(); renderEbooks(); renderKarya();
+  refreshStats();          // angka dashboard selalu dari server, bukan hasil hitung ulang di browser
   $('gsUrl').value = DB.settings.gsUrl||''; $('gsAuto').checked = !!DB.settings.gsAuto;
   $('taInput').value = DB.settings.tahunAjaran||'';
   $('qrUrl').value = DB.settings.qrUrl || (location.protocol.startsWith('http') ? location.href : '');
@@ -4171,8 +4288,9 @@ async function sbRealtimeRefresh(){
     DB.books = books; DB.loans = loans; DB.titles = titles;
     saveDB();
     renderTitleDatalist(); renderReviewJudul();
-    renderBooks(); renderActiveLoans(); renderLoans(); renderDashboard(); renderStats();
+    renderBooks(); renderActiveLoans(); renderLoans();
     scMuatSesiKelas();
+    refreshStats();        // transaksi berubah -> tarik ulang agregat (1 RPC, bukan hitung ulang histori)
   }catch(e){ console.error('realtime refresh', e); }
   finally{
     _rtSibuk = false;
