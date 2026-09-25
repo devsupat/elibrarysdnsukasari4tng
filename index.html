@@ -61,6 +61,9 @@ header{
 .hclock{margin-left:auto; text-align:right; font-family:'Patrick Hand',cursive}
 .hclock .time{font-size:26px; line-height:1}
 .hclock .date{font-size:13px; font-family:'Nunito',sans-serif; font-weight:700; opacity:.9}
+.header-logout{display:none; margin:5px 0 0 auto; min-height:30px; padding:4px 11px; color:#fff; background:transparent;
+  border:1px solid rgba(255,255,255,.55); border-radius:8px; font:700 12px 'Nunito',sans-serif; cursor:pointer}
+.header-logout:hover{background:rgba(255,255,255,.14)}
 .doodle-cloud{position:absolute; font-size:26px; opacity:.35; user-select:none; pointer-events:none}
 
 /* ===== Nav ===== */
@@ -249,30 +252,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   }
   .hclock .time{font-size:22px}
   .hclock .date{font-size:12px}
-  
-  /* Petugas auth bar (#sbBar) on mobile: flow cleanly as a banner above header content without overlap */
-  #sbBar {
-    position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    width: 100% !important;
-    margin-bottom: 10px !important;
-    justify-content: space-between !important;
-    border-radius: 12px !important;
-    padding: 6px 12px !important;
-    box-sizing: border-box !important;
-    background: rgba(255, 255, 255, 0.96) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-  }
-  #sbWho {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
-    font-size: 12.5px !important;
-  }
-  
+  /* Di HP tombol ini disentuh jari, bukan diklik mouse — beri tinggi sentuh yang layak. */
+  .header-logout{margin:0; flex-shrink:0; padding:8px 14px; font-size:12px}
   /* Status pill (#sbStatus) on mobile: flow cleanly below without covering input fields */
   #sbStatus {
     position: relative !important;
@@ -701,6 +682,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div class="hclock">
       <div class="time" id="clockTime">--:--:--</div>
       <div class="date" id="clockDate">-</div>
+      <button class="header-logout" id="sbLogoutButton" type="button" onclick="sbLogout()">Keluar</button>
     </div>
   </div>
 </header>
@@ -1751,6 +1733,13 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <div class="hint">🔒 Aman kok: kode ini hanya menulis ke spreadsheet milik Anda sendiri, tidak mengirim data ke pihak lain. Peringatan muncul semata karena aplikasinya buatan sendiri, belum didaftarkan verifikasi ke Google. Jika tetap terblokir, gunakan tombol <b>📤 Ekspor Semua Data</b> lalu unggah file .xlsx-nya ke Google Drive secara manual.</div>
       <button class="btn small yellow" onclick="copyScript()">📋 Salin Kode Apps Script</button>
       <code class="block" id="gsCode"></code>
+    </div>
+
+    <div class="card">
+      <h2>⬆️ Pemindahan Data Lama</h2>
+      <p class="subtitle">Menyalin data lama yang masih tersimpan di perangkat ini ke database online. Dipakai sekali saat penyiapan awal — bukan pekerjaan harian.</p>
+      <button class="btn ghost" type="button" onclick="sbMigrate()">Mulai Pemindahan Data</button>
+      <div class="hint">💡 Jumlah data ditampilkan dulu untuk dikonfirmasi sebelum dikirim. Data lokal tidak dihapus, dan proses ini aman diulang (tidak menggandakan data).</div>
     </div>
 
     <div class="card">
@@ -4235,9 +4224,8 @@ function renderPetugasPageUI(user) {
 function sbSetAuthUI(user){
   SB_USER = user;
   if(user && $('sbAuth')) $('sbAuth').style.display = 'none';
-  const bar = $('sbBar'); if(bar) bar.style.display = user ? 'flex' : 'none';
-  const who = $('sbWho'); if(who) who.textContent = user ? ('👤 '+user.email) : '';
-  sbStatus(user ? 'ready' : 'connected', user ? user.email : '');
+  const logout = $('sbLogoutButton'); if(logout) logout.style.display = user ? 'block' : 'none';
+  sbStatus(user ? 'ready' : 'connected');
   renderPetugasPageUI(user);
 }
 async function sbLogin(){
@@ -4565,14 +4553,5 @@ function renderStudentArea(d){
   color:#fff;background:#8792ac;border-radius:999px;padding:6px 12px;font-family:Nunito,system-ui,Arial;
   font-size:11px;font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,.15);max-width:70vw"></div>
 
-<!-- Bar petugas (pojok atas): identitas, migrasi data lama, logout. -->
-<div id="sbBar" style="display:none;position:fixed;top:8px;right:8px;z-index:9000;gap:8px;align-items:center;
-  background:#fff;border:1px solid #dbe3f5;border-radius:999px;padding:5px 8px 5px 12px;box-shadow:0 3px 12px rgba(0,0,0,.12);font-family:Nunito,system-ui,Arial;font-size:12px">
-  <span id="sbWho" style="color:#1B3B8F;font-weight:700"></span>
-  <button onclick="sbMigrate()" title="Migrasi data localStorage lama ke Supabase"
-    style="border:0;background:#eaf0ff;color:#1B3B8F;border-radius:999px;padding:5px 10px;cursor:pointer;font-weight:700">⬆️ Migrasi</button>
-  <button onclick="sbLogout()"
-    style="border:0;background:#ffe9e9;color:#c0392b;border-radius:999px;padding:5px 10px;cursor:pointer;font-weight:700">Keluar</button>
-</div>
 </body>
 </html>
