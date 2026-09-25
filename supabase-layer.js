@@ -85,6 +85,17 @@
 
   function friendly(e) {
     var m = (e && e.message) || String(e || '');
+    // Jaringan sekolah putus di tengah transaksi.
+    if (/Failed to fetch|NetworkError|Network request failed|ERR_INTERNET|ERR_NETWORK|Load failed/i.test(m)) {
+      return 'Tidak ada koneksi internet. Data belum tersimpan — periksa jaringan lalu ulangi.';
+    }
+    if (/timeout|timed out|ETIMEDOUT/i.test(m)) {
+      return 'Jaringan lambat, permintaan kehabisan waktu. Coba ulangi sebentar lagi.';
+    }
+    // Sesi login habis / token rusak. Petugas hanya perlu tahu: login ulang.
+    if (/JWT|jwt expired|token|Unauthorized|not authenticated|session|suitable key|invalid signature|invalid claim/i.test(m)) {
+      return 'Sesi login Anda sudah berakhir. Silakan masuk kembali sebagai petugas.';
+    }
     if (/STOK_HABIS/.test(m)) return 'Stok buku habis / semua eksemplar dipinjam.';
     if (/COPY_TIDAK_BEREDAR/.test(m)) return 'Eksemplar ini hilang/rusak/ditarik dari peredaran — tidak dapat dipinjam.';
     if (/uniq_active_loan_per_copy/.test(m)) return 'Eksemplar ini sedang dipinjam — tidak bisa dipinjam dua kali.';
