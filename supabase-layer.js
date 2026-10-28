@@ -111,6 +111,11 @@
     if (/duplicate key/.test(m) && /barcode/.test(m)) return 'Barcode ID sudah dipakai anggota lain.';
     if (/duplicate key/.test(m) && /kode/.test(m)) return 'Kode buku sudah ada di katalog.';
     if (/books_satu_eksemplar_check/.test(m)) return 'Satu baris buku = satu eksemplar fisik. Pakai "Jumlah Eksemplar" agar sistem membuatkan beberapa eksemplar.';
+    if (/TAHUN_AJARAN_TIDAK_VALID/.test(m)) return 'Tahun ajaran harus berbentuk 2027/2028 (tahun kedua = tahun pertama + 1).';
+    if (/TAHUN_AJARAN_LEBIH_LAMA/.test(m)) return 'Tahun ajaran ini lebih lama dari yang sudah tercatat pada data anggota.';
+    if (/TAHUN_AJARAN_LONCAT/.test(m)) return 'Tahun ajaran melompat lebih dari satu tahun dari yang tercatat pada data anggota. Periksa kembali.';
+    if (/ANGGOTA_BUKAN_LULUS/.test(m)) return 'Hanya anggota berstatus LULUS yang dapat dihapus.';
+    if (/ANGGOTA_PUNYA_RIWAYAT/.test(m)) return 'Anggota ini punya riwayat (pinjaman, baca, kunjungan, atau sesi kelas) sehingga tidak dapat dihapus. Biarkan tersimpan di Arsip Lulusan.';
     if (/JENIS_TIDAK_DIKENAL/.test(m)) return 'Jenis laporan tidak dikenal — muat ulang halaman.';
     if (/ebooks_url_check/.test(m)) return 'Tautan e-book tidak valid. Gunakan alamat yang diawali https://';
     if (/KODE_TIDAK_BOLEH_DIUBAH/.test(m)) return 'Kode eksemplar tidak dapat diubah — label QR-nya sudah tertempel di buku.';
@@ -205,6 +210,14 @@
         data = throwIf(await sb.from('members').insert(row).select().single());
       }
       return rowToMem(data);
+    },
+    // Kenaikan kelas & kelulusan: aturan dan penanda "sudah diproses" ada di database (atomik).
+    async kenaikanKelas(tahun, eksekusi) {
+      return throwIf(await sb.rpc('kenaikan_kelas', { p_tahun_ajaran: tahun, p_eksekusi: !!eksekusi }));
+    },
+    // p_hapus=false: hanya memeriksa kelayakan; true: menghapus bila AMAN (LULUS & tanpa riwayat apa pun).
+    async hapusAnggotaLulus(id, hapus) {
+      return throwIf(await sb.rpc('hapus_anggota_lulus', { p_member_id: id, p_hapus: !!hapus }));
     },
     async deleteMember(id) { throwIf(await sb.from('members').delete().eq('id', id)); },
 

@@ -1315,13 +1315,22 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <input id="mSearch" placeholder="🔍 Cari nama, nomor anggota, atau barcode...">
       <select id="mFilterKelas"><option value="">Semua Kelas</option></select>
       <select id="mFilterStatus"><option value="">Semua Keanggotaan</option><option>Anggota</option><option>Non-Anggota</option></select>
-      <select id="mFilterLife"><option value="">Semua Status Siswa</option><option>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select>
+      <select id="mFilterLife"><option value="">Semua Status Siswa</option><option selected>AKTIF</option><option>LULUS</option><option>PINDAH</option><option>NONAKTIF</option></select>
     </div>
     <div class="table-wrap"><table>
       <thead><tr><th>No</th><th>Nama</th><th>Kelas / Bagian</th><th>Jenis Kelamin</th><th>Jenis Pengguna</th><th>No. Anggota</th><th>ID Barcode</th><th>Keanggotaan</th><th>Status Siswa</th><th>Aksi</th></tr></thead>
       <tbody id="memberTable"></tbody>
     </table></div>
     <div style="margin-top:8px"><button class="btn small ghost" id="mMoreBtn" onclick="memberLimit+=50;renderMembers()">Tampilkan lebih banyak ⬇️</button></div>
+  </div>
+
+  <div class="card">
+    <h2>🎓 Arsip Lulusan <span id="alCount" class="badge b-blue"></span></h2>
+    <p class="subtitle">Siswa yang sudah lulus. Data dan riwayat peminjaman tetap tersimpan.</p>
+    <div class="search-bar"><input id="alSearch" placeholder="🔍 Cari nama, NISN, atau kelas terakhir..." aria-label="Cari lulusan"></div>
+    <div id="alList"></div>
+    <div style="margin-top:8px"><button class="btn small ghost" id="alMoreBtn" onclick="alLimit+=50;renderArsip()">Tampilkan lebih banyak ⬇️</button></div>
+    <div class="hint">🗑️ Lulusan hanya bisa dihapus permanen jika belum punya riwayat apa pun. Bila punya riwayat, anggota tetap tersimpan di arsip agar catatan peminjaman tidak rusak.</div>
   </div>
 </div>
 
@@ -1836,14 +1845,17 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <div class="hint">💡 Jumlah data ditampilkan dulu untuk dikonfirmasi sebelum dikirim. Data lokal tidak dihapus, dan proses ini aman diulang (tidak menggandakan data).</div>
     </div>
 
-    <div class="card">
-      <h2>🎓 Tahun Ajaran &amp; Kenaikan Kelas</h2>
-      <p class="subtitle">Naikkan kelas semua siswa aktif sekaligus. Barcode &amp; identitas siswa tetap — hanya kelas &amp; status yang berubah.</p>
-      <label>Tahun Ajaran Aktif</label>
-      <input id="taInput" placeholder="cth: 2026/2027">
-      <button class="btn small ghost" onclick="saveTahunAjaran()">💾 Simpan Tahun Ajaran</button>
-      <div style="margin-top:12px"><button class="btn yellow" onclick="promoteYear()">⬆️ Proses Kenaikan Kelas</button></div>
-      <div class="hint">Kelas 1→2, 2→3, … 5→6, dan <b>kelas 6 → LULUS</b> (masuk arsip, data tidak dihapus). Huruf rombel dipertahankan (mis. 5A→6A). Cadangan JSON otomatis diunduh sebelum proses.</div>
+    <div class="card" id="kkCard" style="grid-column:1/-1">
+      <h2>🎓 Kenaikan Kelas &amp; Kelulusan</h2>
+      <p class="subtitle">Naikkan semua siswa aktif satu tingkat. Kelas 6 menjadi <b>LULUS</b> dan masuk Arsip Lulusan (tidak dihapus). Huruf rombel tetap: 5B menjadi 6B.</p>
+      <div class="hint" id="kkAktif"></div>
+      <label for="taInput">Tahun ajaran baru</label>
+      <input id="taInput" placeholder="cth: 2027/2028" inputmode="numeric" autocomplete="off" oninput="kkReset()">
+      <button class="btn ghost" id="kkBtnLihat" onclick="kkLihat()">🔎 Lihat Ringkasan Perubahan</button>
+      <div id="kkRingkasan" aria-live="polite"></div>
+      <button class="btn yellow" id="kkBtnProses" style="display:none" onclick="kkProses()">⬆️ Proses Kenaikan Kelas</button>
+      <div id="kkHasil" aria-live="polite"></div>
+      <div class="hint">Perubahan disimpan di database lalu dibaca ulang dari server. Jalankan <b>sebelum</b> mendaftarkan siswa baru kelas 1 untuk tahun ajaran baru. Guru, staf, tamu, dan siswa yang sudah lulus tidak berubah.</div>
     </div>
   </div>
 
@@ -2281,10 +2293,10 @@ async function saveMember(){
   if(id){
     const m = DB.members.find(x=>x.id===id);
     data.id = id;
-    data.tahunAjaran = (m && m.tahunAjaran) || DB.settings.tahunAjaran || '';
+    data.tahunAjaran = (m && m.tahunAjaran) || '';
   } else {
     if(DB.members.some(x=>x.nama===nama && x.kelas===data.kelas)){ toast('⚠️ Nama & kelas ini sudah terdaftar'); return; }
-    data.tahunAjaran = DB.settings.tahunAjaran || '';
+    data.tahunAjaran = tahunAjaranAktif();   // dari data anggota di server, sama di semua perangkat
   }
   if(SB_ENABLED){
     try{
@@ -2307,13 +2319,6 @@ function editMember(id){
   $('mNis').value = m.nis||''; $('mNisn').value = m.nisn||''; $('mBarcode').value = m.barcodeId||'';
   $('mSaveBtn').textContent = '💾 Simpan Perubahan';
   goPage('anggota'); $('mNama').focus();
-}
-async function delMember(id){
-  const m = DB.members.find(x=>x.id===id);
-  if(!confirm('Hapus data "'+m.nama+'"?')) return;
-  if(SB_ENABLED){ try{ await LibraryAPI.deleteMember(id); }catch(e){ toast('❌ '+LibraryAPI.msg(e)); return; } }
-  DB.members = DB.members.filter(x=>x.id!==id);
-  saveDB(); renderMembers(); renderDashboard(); toast('🗑️ Data dihapus');
 }
 function resetMemberForm(){ ['mId','mNama','mKelas','mRombel','mNo','mNis','mNisn','mBarcode'].forEach(i=>$(i).value=''); $('mJk').value='L'; $('mTipe').value='Siswa'; $('mLife').value='AKTIF'; $('mSaveBtn').textContent='💾 Simpan'; }
 /* Cetak kartu siswa + QR barcode. Barcode SELALU dari barcodeId tersimpan (tak pernah generate saat print). */
@@ -2364,8 +2369,7 @@ function renderMembers(){
     <td><span class="badge ${m.status==='Anggota'?'b-green':'b-gray'}">${m.status}</span></td>
     <td><span class="badge ${lifeBadge[m.lifecycle||'AKTIF']||'b-gray'}">${esc(m.lifecycle||'AKTIF')}</span></td>
     <td><button class="icon-btn" onclick="printCard('${m.id}')" title="Cetak Kartu + Barcode">🖨️</button>
-        <button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button>
-        <button class="icon-btn" onclick="delMember('${m.id}')" title="Hapus">🗑️</button></td></tr>`).join('')
+        <button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button></td></tr>`).join('')
     || '<tr><td colspan="10" style="text-align:center;padding:20px">Belum ada data. Tambahkan di formulir atas ⬆️</td></tr>';
   $('mMoreBtn').style.display = rows.length > memberLimit ? '' : 'none';
   // kelas filter options
@@ -4559,36 +4563,159 @@ function saveSettings(){
   DB.settings.qrUrl = $('qrUrl').value.trim();
   saveDB();
 }
-function saveTahunAjaran(){
-  DB.settings.tahunAjaran = $('taInput').value.trim();
-  saveDB(); toast('✅ Tahun ajaran: '+(DB.settings.tahunAjaran||'(kosong)'));
+/* =================== KENAIKAN KELAS & ARSIP LULUSAN ===================
+   Sebelumnya promoteYear() hanya mengubah DB.members di browser: pesan sukses muncul, tetapi
+   perubahan hilang begitu data server dimuat ulang. Sekarang SEMUA aturan dijalankan di database
+   (RPC kenaikan_kelas, atomik) dan hasilnya dibaca ulang dari server sebelum dinyatakan berhasil.
+   Penanda anti-ganda: members.tahun_ajaran. Tahun ajaran aktif = nilai terbesar pada data anggota. */
+const KK = { data:null, sibuk:false };
+function tahunAjaranAktif(){
+  let maks = '';
+  DB.members.forEach(m=>{ if(/^\d{4}\/\d{4}$/.test(m.tahunAjaran||'') && m.tahunAjaran > maks) maks = m.tahunAjaran; });
+  return maks;
 }
-/* Unduh cadangan seluruh DB sebagai JSON — dipanggil sebelum operasi berisiko (kenaikan kelas). */
-function backupJSON(){
-  const blob = new Blob([JSON.stringify(DB)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'BACKUP_SUPAT_'+todayStr()+'.json';
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+function kkSaran(){
+  const a = tahunAjaranAktif();
+  if(a){ const y = parseInt(a, 10) + 1; return y + '/' + (y + 1); }
+  const d = new Date(), y = d.getFullYear();
+  return d.getMonth() < 6 ? (y + '/' + (y + 1)) : ((y + 1) + '/' + (y + 2));   // tahun ajaran berikutnya yang akan dimulai
 }
-/* Kenaikan kelas: hanya siswa AKTIF bertipe Siswa. Kelas 6 → LULUS (arsip, tidak dihapus).
-   Barcode/studentId/histori TIDAK berubah. Rombel dipetakan lurus (5A→6A); pemetaan silang manual. */
-function promoteYear(){
-  if(!confirm('Proses kenaikan kelas untuk semua siswa AKTIF?\nKelas 6 akan menjadi LULUS (arsip). Barcode & histori tetap.\nCadangan JSON akan diunduh dulu.')) return;
-  backupJSON();
-  let naik = 0, lulus = 0;
-  DB.members.forEach(m=>{
-    if((m.tipe||'Siswa')!=='Siswa') return;
-    if((m.lifecycle||'AKTIF')!=='AKTIF') return;
-    const g = /^(\d+)/.exec(m.kelas||'');
-    if(!g) return; // kelas non-numerik (Guru/Tamu/dll) dilewati
-    const grade = parseInt(g[1],10);
-    if(grade >= 6){ m.lifecycle = 'LULUS'; lulus++; }
-    else { m.kelas = m.kelas.replace(/^\d+/, String(grade+1)); naik++; }
-    m.tahunAjaran = DB.settings.tahunAjaran || m.tahunAjaran || '';
-  });
-  saveDB(); renderMembers(); renderDashboard();
-  toast('🎓 Kenaikan selesai: '+naik+' naik kelas, '+lulus+' LULUS (arsip). Cadangan JSON terunduh.');
+function kkInit(){
+  const el = $('taInput'); if(!el) return;
+  if(!el.value) el.value = kkSaran();
+  const a = tahunAjaranAktif();
+  $('kkAktif').textContent = a ? ('Tahun ajaran tertinggi yang tercatat pada data anggota: ' + a + '.')
+    : 'Belum ada tahun ajaran tercatat pada data anggota — kenaikan pertama akan mencatatnya.';
 }
+function kkReset(){   // ringkasan yang sudah dibuat hanya berlaku untuk tahun ajaran yang diketik saat itu
+  KK.data = null; $('kkRingkasan').innerHTML = ''; $('kkBtnProses').style.display = 'none';
+}
+function kkDilewatiHtml(dl, daftar){
+  const baris = [];
+  if(dl.bukan_siswa) baris.push(dl.bukan_siswa + ' guru/staf/tamu atau bukan siswa');
+  if(dl.bukan_aktif) baris.push(dl.bukan_aktif + ' siswa yang sudah lulus / pindah / nonaktif');
+  if(dl.kelas_kosong) baris.push(dl.kelas_kosong + ' siswa tanpa kelas');
+  if(dl.format_tidak_valid) baris.push(dl.format_tidak_valid + ' siswa dengan format kelas tidak dikenali'
+    + (daftar && daftar.length ? ' (' + daftar.map(x=>esc(x.kelas) + ' ×' + x.jumlah).join(', ') + ')' : '') + ' — tidak diubah');
+  if(dl.sudah_diproses) baris.push(dl.sudah_diproses + ' sudah diproses untuk tahun ajaran ini');
+  return baris.length ? '<ul style="margin:4px 0 0 18px;padding:0;font-size:13px;line-height:1.6;font-weight:600">'
+    + baris.map(b=>'<li>' + b + '</li>').join('') + '</ul>' : '<div style="font-size:13px">Tidak ada.</div>';
+}
+function kkRenderRingkasan(d){
+  const total = d.siap_naik + d.siap_lulus;
+  $('kkRingkasan').innerHTML = `<div style="margin:10px 0 4px;font-weight:800;color:var(--blue-dark)">Siswa aktif per kelas &amp; rencana perubahan — tahun ajaran ${esc(d.tahun_baru)}</div>`
+    + (d.per_kelas.map(r=>drRow(esc(r.kelas) + ' → <b>' + esc(r.tujuan) + '</b>', '', '', '<b>' + r.jumlah + '</b> siswa')).join('')
+       || '<div class="dd-state" style="padding:12px">Tidak ada siswa yang perlu diproses.</div>')
+    + `<div style="margin:8px 0;font-weight:800">${d.siap_naik} naik kelas · ${d.siap_lulus} lulus (kelas 6)${d.siap_lulus ? ' — tahun lulus ' + esc(d.tahun_lulus) : ''}</div>`
+    + (d.pinjaman_aktif_lulusan ? `<div class="hint" style="border-color:var(--warn)">⚠️ ${d.pinjaman_aktif_lulusan} calon lulusan masih punya pinjaman aktif. Mereka tetap bisa mengembalikan buku, tetapi tidak bisa meminjam lagi.</div>` : '')
+    + `<div style="margin-top:6px;font-weight:800;color:var(--blue-dark)">Dilewati (tidak diubah)</div>` + kkDilewatiHtml(d.dilewati, d.format_tidak_valid_daftar);
+  $('kkBtnProses').style.display = total > 0 ? '' : 'none';
+}
+async function kkMuatUlangAnggota(){
+  DB.members = await LibraryAPI.pullMembers();
+  saveDB(); renderMembers(); renderArsip(); kkInit(); renderDashboard();
+}
+async function kkLihat(){
+  if(KK.sibuk) return;
+  if(!SB_ENABLED || !SB_USER){ toast('⚠️ Butuh koneksi database online dan login petugas.'); return; }
+  const ta = $('taInput').value.trim();
+  kkReset(); $('kkHasil').innerHTML = '';
+  if(!/^\d{4}\/\d{4}$/.test(ta)){ $('kkRingkasan').innerHTML = '<div class="dd-state err" style="padding:10px">Tahun ajaran harus berbentuk 2027/2028.</div>'; return; }
+  KK.sibuk = true; $('kkBtnLihat').disabled = true; $('kkRingkasan').innerHTML = '<div class="dd-state">⏳ Memeriksa data di server…</div>';
+  try{
+    const d = await LibraryAPI.kenaikanKelas(ta, false);
+    if($('taInput').value.trim() !== ta) return;       // tahun diubah selagi menunggu: abaikan hasil lama
+    KK.data = d; kkRenderRingkasan(d);
+  }catch(e){ $('kkRingkasan').innerHTML = `<div class="dd-state err" style="padding:10px">❌ ${esc(LibraryAPI.msg(e))}</div>`; }
+  finally{ KK.sibuk = false; $('kkBtnLihat').disabled = false; }
+}
+async function kkProses(){
+  if(KK.sibuk) return;                                   // cegah klik ganda
+  const d = KK.data;
+  if(!d || d.tahun_baru !== $('taInput').value.trim()){ toast('⚠️ Lihat ringkasan perubahan dulu.'); return; }
+  const dl = d.dilewati, lewat = dl.bukan_siswa + dl.bukan_aktif + dl.kelas_kosong + dl.format_tidak_valid + dl.sudah_diproses;
+  if(!confirm('KENAIKAN KELAS — tahun ajaran ' + d.tahun_baru + '\n\n'
+    + '  • ' + d.siap_naik + ' siswa naik kelas\n  • ' + d.siap_lulus + ' siswa kelas 6 menjadi LULUS (tidak dihapus)\n  • ' + lewat + ' dilewati / tidak diubah\n\n'
+    + 'Tidak ada kelas 7. Data anggota dan riwayat tetap. Perubahan langsung disimpan di database.\n\nLanjutkan?')) return;
+
+  KK.sibuk = true; $('kkBtnProses').disabled = true; $('kkBtnLihat').disabled = true;
+  $('kkHasil').innerHTML = '<div class="dd-state">⏳ Memproses di server…</div>';
+  let hasil = null, galat = null;
+  try{ hasil = await LibraryAPI.kenaikanKelas(d.tahun_baru, true); }catch(e){ galat = e; }
+
+  // Apa pun hasilnya, keadaan akhir DIBACA ULANG dari server; pesan sukses hanya dari hasil itu.
+  let cek = null;
+  try{ await kkMuatUlangAnggota(); cek = await LibraryAPI.kenaikanKelas(d.tahun_baru, false); }catch(_){}
+  KK.sibuk = false; $('kkBtnProses').disabled = false; $('kkBtnLihat').disabled = false;
+
+  if(cek){ KK.data = cek; kkRenderRingkasan(cek); }
+  const sisa = cek ? (cek.siap_naik + cek.siap_lulus) : null;
+  if(!cek){
+    $('kkHasil').innerHTML = '<div class="dd-state err">❓ Hasil belum bisa dipastikan (tidak ada koneksi ke server). <b>Jangan menekan Proses lagi</b> — tekan “Lihat Ringkasan” setelah koneksi pulih untuk memeriksa keadaan terkini.</div>';
+    return;
+  }
+  const h = hasil && hasil.hasil;          // RPC: {…ringkasan, hasil:{naik, lulus, sisa}} — angka nyata dari UPDATE
+  if(h && sisa === 0 && h.sisa === 0){
+    $('kkHasil').innerHTML = `<div class="hint" style="border-color:var(--ok)">✅ <b>Selesai dan terverifikasi dari server.</b><ul style="margin:4px 0 0 18px;line-height:1.6">
+      <li>Berhasil: ${h.naik} naik kelas, ${h.lulus} lulus</li><li>Dilewati: ${lewat} (tidak diubah)</li><li>Gagal: 0 · menunggu diproses: 0</li></ul></div>`;
+    toast('✅ Kenaikan kelas selesai dan terverifikasi');
+  } else if(galat && sisa === 0){
+    $('kkHasil').innerHTML = `<div class="hint" style="border-color:var(--warn)">⚠️ Respons dari server tidak diterima (${esc(LibraryAPI.msg(galat))}), tetapi pemeriksaan ulang menunjukkan <b>tidak ada lagi siswa yang menunggu diproses</b> untuk tahun ajaran ${esc(d.tahun_baru)}. Cek Arsip Lulusan dan daftar anggota untuk memastikan.</div>`;
+  } else if(galat){
+    $('kkHasil').innerHTML = `<div class="dd-state err">❌ Proses gagal: ${esc(LibraryAPI.msg(galat))}<br>Keadaan di server saat ini: ${sisa} siswa belum diproses. Tidak ada perubahan setengah jalan — proses dijalankan sekaligus atau tidak sama sekali.</div>`;
+  } else {
+    $('kkHasil').innerHTML = `<div class="dd-state err">⚠️ Server melaporkan masih ada ${sisa} siswa yang belum diproses. Periksa ringkasan di atas.</div>`;
+  }
+}
+
+/* ---------- Arsip Lulusan ---------- */
+let alLimit = 50;
+function renderArsip(){
+  const box = $('alList'); if(!box) return;
+  const q = ($('alSearch').value || '').toLowerCase().trim();
+  const rows = DB.members.filter(m=>(m.lifecycle||'AKTIF')==='LULUS' && (!q
+      || (m.nama||'').toLowerCase().includes(q) || (m.nisn||'').toLowerCase().includes(q) || (m.kelas||'').toLowerCase().includes(q)))
+    .sort((a,b)=>(b.tahunAjaran||'').localeCompare(a.tahunAjaran||'') || (a.nama||'').localeCompare(b.nama||'','id'));
+  $('alCount').textContent = rows.length + ' lulusan';
+  const tampil = rows.slice(0, alLimit);
+  box.innerHTML = tampil.map(m=>drRow(esc(m.nama),
+      'Kelas terakhir ' + esc(m.kelas || '-') + ' · ' + (m.tahunAjaran ? 'lulus tahun ajaran ' + esc(m.tahunAjaran) : 'tahun lulus tidak tercatat'),
+      m.nisn ? 'NISN ' + esc(m.nisn) : '',
+      `<button type="button" class="btn small ghost" style="margin:0 0 4px" onclick="bukaRiwayat('${esc(m.id)}')">📋 Riwayat</button>
+       <button type="button" class="btn small red" style="margin:0" onclick="alHapus('${esc(m.id)}')">🗑️ Hapus</button>`)).join('')
+    || `<div class="dd-state">${q ? 'Tidak ada lulusan yang cocok dengan pencarian.' : 'Belum ada lulusan. Siswa kelas 6 menjadi lulusan lewat Kenaikan Kelas di menu Data &amp; Sinkron.'}</div>`;
+  $('alMoreBtn').style.display = rows.length > alLimit ? '' : 'none';
+}
+$('alSearch').addEventListener('input', ()=>{ alLimit = 50; renderArsip(); });
+const AL_ALASAN = {
+  BUKAN_LULUS: j=>'statusnya bukan LULUS',
+  PINJAMAN_AKTIF: j=>'masih punya ' + j.pinjaman_aktif + ' pinjaman aktif',
+  ADA_RIWAYAT_PINJAMAN: j=>'punya ' + j.pinjaman + ' catatan pinjaman',
+  ADA_AKTIVITAS_BACA: j=>'punya ' + j.aktivitas_baca + ' catatan baca di tempat',
+  ADA_RIWAYAT_KUNJUNGAN: j=>'punya ' + j.kunjungan + ' catatan kunjungan',
+  ADA_SESI_KELAS: j=>'tercatat pada ' + j.sesi_kelas + ' sesi pinjam ke kelas'
+};
+async function alHapus(id){
+  if(!SB_ENABLED || !SB_USER){ toast('⚠️ Butuh koneksi database online dan login petugas.'); return; }
+  let c;
+  try{ c = await LibraryAPI.hapusAnggotaLulus(id, false); }catch(e){ toast('❌ ' + LibraryAPI.msg(e)); return; }
+  const a = c.anggota, j = c.jumlah;
+  const identitas = a.nama + '\nKelas terakhir: ' + (a.kelas || '-') + ' · ' + (a.tahun_ajaran ? 'lulus tahun ajaran ' + a.tahun_ajaran : 'tahun lulus tidak tercatat')
+    + '\nNISN: ' + (a.nisn || '-') + ' · Barcode: ' + (a.barcode_id || '-');
+  if(!c.boleh){
+    alert(identitas + '\n\nTIDAK DAPAT DIHAPUS karena:\n  • ' + c.alasan.map(k=>(AL_ALASAN[k] ? AL_ALASAN[k](j) : k)).join('\n  • ')
+      + '\n\nMenghapus akan merusak catatan peminjaman/kunjungan. Anggota tetap aman di Arsip Lulusan.');
+    return;
+  }
+  if(!confirm('HAPUS PERMANEN anggota ini?\n\n' + identitas + '\n\nBelum ada riwayat pinjaman, baca, kunjungan, maupun sesi kelas. Tindakan ini tidak bisa dibatalkan.')) return;
+  try{
+    const h = await LibraryAPI.hapusAnggotaLulus(id, true);
+    await kkMuatUlangAnggota();                          // verifikasi: baca ulang dari server
+    if(h.dihapus && !DB.members.some(m=>m.id === id)) toast('🗑️ ' + a.nama + ' dihapus dari arsip');
+    else alert('Penghapusan tidak terjadi. Anggota tetap tersimpan di Arsip Lulusan.');
+  }catch(e){ alert('❌ Penghapusan ditolak database:\n\n' + LibraryAPI.msg(e)); try{ await kkMuatUlangAnggota(); }catch(_){} }
+}
+
 async function syncNow(silent){
   saveSettings();
   const url = DB.settings.gsUrl;
@@ -4774,7 +4901,7 @@ function renderAll(){
   renderMembers(); renderBooks(); renderLoans(); renderActiveLoans(); renderVisits(); renderDashboard(); renderStats(); renderEbooks(); renderKarya();
   refreshStats();          // angka dashboard selalu dari server, bukan hasil hitung ulang di browser
   $('gsUrl').value = DB.settings.gsUrl||''; $('gsAuto').checked = !!DB.settings.gsAuto;
-  $('taInput').value = DB.settings.tahunAjaran||'';
+  kkInit(); renderArsip();
   $('qrUrl').value = DB.settings.qrUrl || (location.protocol.startsWith('http') ? location.href : '');
   if(DB.settings.lastSync) $('gsStatus').innerHTML = 'Sinkron terakhir: <b>'+DB.settings.lastSync+'</b>';
   applyThumb();
