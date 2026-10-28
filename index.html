@@ -1417,6 +1417,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <button class="btn small green" id="bBtnCetak" onclick="cetakLabelTerpilih()">🖨️ Cetak Label Terpilih</button>
       <button class="btn small ghost" id="bBtnSemuaFilter" style="display:none" onclick="bPilihSemuaHasilFilter()"></button>
       <button class="btn small ghost" onclick="bBersihkanPilihan()">Kosongkan Pilihan</button>
+      <button class="btn small red" id="bBtnHapus" onclick="hapusEksemplar([...bTerpilih])">🗑️ Hapus Eksemplar Ganda</button>
       <span id="bPilihCatatan" style="flex-basis:100%;font-size:12px;color:var(--muted)"></span>
     </div>
 
@@ -1948,7 +1949,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 
     <h3 style="margin-top:18px">Status Buku Fisik</h3>
     <div class="hint" style="margin-bottom:8px">
-      Buku tidak pernah dihapus, supaya riwayat peminjamannya tetap bisa ditelusuri.
+      Eksemplar yang pernah dipinjam tidak bisa dihapus, supaya riwayatnya tetap bisa ditelusuri.
+      Tombol hapus hanya untuk eksemplar yang salah input atau ganda.
     </div>
     <div id="ubStatusNow" style="margin-bottom:8px"></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -1956,6 +1958,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
       <button class="btn small yellow" onclick="ubahStatusBuku('DAMAGED')">🛠️ Tandai rusak</button>
       <button class="btn small red" onclick="ubahStatusBuku('LOST')">❓ Tandai hilang</button>
       <button class="btn small ghost" onclick="ubahStatusBuku('RETIRED')">📦 Tarik dari peredaran</button>
+      <button class="btn small red" onclick="hapusEksemplar([$('ubId').value])">🗑️ Hapus eksemplar ganda</button>
     </div>
   </div>
 </div>
@@ -2533,6 +2536,36 @@ async function ubahStatusBuku(status){
     const nb = DB.books.find(x=>x.id===id);
     if(nb) $('ubStatusNow').innerHTML = 'Status sekarang: '+statusCopyBadge(nb.statusCopy);
     toast('✅ Status eksemplar diperbarui');
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
+/* Hapus eksemplar salah-input/ganda. Hanya yang BELUM punya riwayat pinjam/baca;
+   sisanya dilewati dan dijelaskan (arahkan ke "Tarik dari peredaran"). Eksemplar
+   lain dari judul yang sama tidak tersentuh. */
+async function hapusEksemplar(ids){
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online.'); return; }
+  const target = DB.books.filter(b => ids.includes(b.id));
+  if(!target.length){ toast('⚠️ Pilih dulu eksemplar yang mau dihapus'); return; }
+  try{
+    const pakai = await LibraryAPI.copiesWithHistory(target.map(b=>b.id));
+    const bisa = target.filter(b => !pakai[b.id] && (b.statusCopy||'AVAILABLE') !== 'BORROWED');
+    const tidak = target.filter(b => !bisa.includes(b));
+    if(!bisa.length){
+      alert('Tidak ada yang bisa dihapus.\n\n' + tidak.length + ' eksemplar sudah punya riwayat peminjaman/baca ('
+        + tidak.slice(0,5).map(b=>b.kode).join(', ') + (tidak.length>5?', ...':'') + ').\n'
+        + 'Gunakan "Tarik dari peredaran" agar riwayatnya tetap tersimpan.');
+      return;
+    }
+    let pesan = 'Hapus PERMANEN ' + bisa.length + ' eksemplar?\n\n'
+      + bisa.slice(0,8).map(b=>b.kode + ' — ' + (b.judul||'')).join('\n') + (bisa.length>8?'\n... dan '+(bisa.length-8)+' lainnya':'')
+      + '\n\nLabel QR eksemplar ini tidak berlaku lagi. Tidak bisa dibatalkan.';
+    if(tidak.length) pesan += '\n\n' + tidak.length + ' eksemplar lain DILEWATI karena sudah punya riwayat peminjaman.';
+    if(!confirm(pesan)) return;
+    await LibraryAPI.deleteBooks(bisa.map(b=>b.id));
+    bisa.forEach(b => bTerpilih.delete(b.id));
+    await muatUlangInventaris();
+    tutupUbahBuku();
+    toast('🗑️ ' + bisa.length + ' eksemplar dihapus' + (tidak.length ? ' · ' + tidak.length + ' dilewati (punya riwayat)' : ''));
   }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
 }
 

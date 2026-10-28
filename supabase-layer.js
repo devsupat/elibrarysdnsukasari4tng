@@ -212,6 +212,25 @@
     },
     async deleteBook(id) { throwIf(await sb.from('books').delete().eq('id', id)); },
 
+    // Eksemplar yang pernah dipinjam/dibaca TIDAK boleh dihapus (riwayat ikut yatim).
+    // Dua query per 100 id, termasuk pinjaman berstatus CANCELLED yang tidak ada di memori.
+    // Mengembalikan {bookId: true} untuk eksemplar yang punya riwayat.
+    async copiesWithHistory(ids) {
+      var used = {};
+      for (var i = 0; i < ids.length; i += 100) {
+        var part = ids.slice(i, i + 100);
+        var l = throwIf(await sb.from('loans').select('book_id').in('book_id', part));
+        var r = throwIf(await sb.from('reading_activities').select('book_id').in('book_id', part));
+        l.concat(r).forEach(function (x) { used[x.book_id] = true; });
+      }
+      return used;
+    },
+    async deleteBooks(ids) {
+      for (var i = 0; i < ids.length; i += 100) {
+        throwIf(await sb.from('books').delete().in('id', ids.slice(i, i + 100)));
+      }
+    },
+
     // ---------- titles (bibliografi) ----------
     async pullTitles() { return (await this._pullAll('titles', 'judul', true)).map(rowToTitle); },
 
