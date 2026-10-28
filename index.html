@@ -1414,14 +1414,16 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div id="bAksiBar" style="display:none;margin:10px 0;padding:10px 12px;background:var(--sky);
          border:2px solid var(--blue);border-radius:12px;align-items:center;gap:10px;flex-wrap:wrap">
       <b id="bPilihInfo" style="color:var(--blue-dark)"></b>
-      <button class="btn small green" onclick="cetakLabelTerpilih()">🖨️ Cetak Label QR</button>
-      <button class="btn small ghost" onclick="bBersihkanPilihan()">Batalkan pilihan</button>
+      <button class="btn small green" id="bBtnCetak" onclick="cetakLabelTerpilih()">🖨️ Cetak Label Terpilih</button>
+      <button class="btn small ghost" id="bBtnSemuaFilter" style="display:none" onclick="bPilihSemuaHasilFilter()"></button>
+      <button class="btn small ghost" onclick="bBersihkanPilihan()">Kosongkan Pilihan</button>
+      <span id="bPilihCatatan" style="flex-basis:100%;font-size:12px;color:var(--muted)"></span>
     </div>
 
-    <div style="font-size:12px;color:var(--muted);margin:8px 0 5px">Centang baris untuk memilih eksemplar yang akan diproses bersama.</div>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 5px">Centang baris untuk memilih eksemplar yang akan dicetak labelnya. Pilihan tetap tersimpan saat pencarian atau filter diganti.</div>
     <div class="table-wrap"><table>
       <thead><tr>
-        <th style="width:34px"><input type="checkbox" id="bPilihSemua" aria-label="Pilih semua eksemplar yang tampil" title="Pilih semua yang tampil"
+        <th style="width:34px"><input type="checkbox" id="bPilihSemua" aria-label="Pilih semua eksemplar yang tampil di tabel" title="Pilih semua baris yang tampil di tabel"
             onclick="bTogglePilihSemua(this.checked)" style="width:auto"></th>
         <th>Kode</th><th>Judul</th><th>Rak</th><th>Sumber</th><th>Kondisi</th><th>Status</th><th>Aksi</th></tr></thead>
       <tbody id="bookTable"></tbody>
@@ -2661,7 +2663,7 @@ function qrDataUrl(teks){
 }
 
 function labelHTML(b, src){
-  const judul = (b.judul || '').slice(0, 60);
+  const judul = (b.judul || '').slice(0, 120);   // batas kasar; pemotongan rapi 2 baris + "…" oleh CSS line-clamp
   return `<div class="label">
     <div class="merek">SUPAT LIBRARY</div>
     ${src ? `<img class="qr" src="${src}" alt="">` : '<div class="qr"></div>'}
@@ -2671,26 +2673,58 @@ function labelHTML(b, src){
 }
 
 /* Jendela terpisah, bukan menyembunyikan halaman utama dengan CSS:
-   isinya bersih total, tanpa navbar/kartu/tombol yang ikut tercetak. */
+   isinya bersih total, tanpa navbar/kartu/tombol yang ikut tercetak.
+   Jendela dibuka PERTAMA (selagi klik petugas masih berlaku, supaya tidak
+   diblokir popup blocker), baru QR dibuat. Dialog cetak TIDAK terbuka otomatis:
+   petugas lebih dulu melihat jumlah label & halaman, lalu menekan Cetak. */
+const LABEL_PER_HALAMAN = 18;   // 3 kolom x 6 baris
+const LABEL_MAKS = 300;         // batas wajar memori browser untuk satu dokumen
+
+/* Mengembalikan {ids, terpotong} bila jendela cetak terbuka, selain itu null. */
 function cetakLabelQR(ids){
-  if(!ids || !ids.length){ toast('⚠️ Pilih dulu buku yang mau dicetak labelnya'); return; }
-  if(ids.length > 300){ toast('⚠️ Maksimal 300 label sekali cetak. Pilih lebih sedikit dulu.'); return; }
+  if(!ids || !ids.length){ toast('⚠️ Pilih dulu buku yang mau dicetak labelnya'); return null; }
   if(typeof QRCode === 'undefined'){
-    toast('❌ Pembuat QR belum termuat. Butuh internet saat pertama membuka aplikasi.'); return;
+    toast('❌ Pembuat QR belum termuat. Butuh internet saat pertama membuka aplikasi.'); return null;
   }
 
-  const daftar = ids.map(id => DB.books.find(b => b.id === id)).filter(Boolean);
-  if(!daftar.length){ toast('⚠️ Data buku tidak ditemukan — muat ulang halaman.'); return; }
+  // Urutan label mengikuti urutan inventaris (bukan urutan klik); id ganda otomatis satu.
+  const dipilih = new Set(ids);
+  let daftar = DB.books.filter(b => dipilih.has(b.id));
+  if(!daftar.length){ toast('⚠️ Data buku tidak ditemukan — muat ulang halaman.'); return null; }
+  if(daftar.length < dipilih.size){
+    toast('⚠️ ' + (dipilih.size - daftar.length) + ' eksemplar sudah tidak ada di data dan dilewati.');
+  }
 
-  toast('⏳ Menyiapkan ' + daftar.length + ' label...');
-  const labels = daftar.map(b => labelHTML(b, qrDataUrl(b.kode))).join('');
+  let terpotong = false;
+  if(daftar.length > LABEL_MAKS){
+    if(!confirm(daftar.length + ' label dipilih, sedangkan sekali cetak maksimal ' + LABEL_MAKS + '.\n\n' +
+                'Cetak ' + LABEL_MAKS + ' label pertama sekarang? Sisanya tetap terpilih untuk dicetak berikutnya.')) return null;
+    daftar = daftar.slice(0, LABEL_MAKS);
+    terpotong = true;
+  }
 
   const w = window.open('', '_blank', 'width=900,height=700');
-  if(!w){ toast('⚠️ Jendela cetak diblokir browser. Izinkan popup untuk situs ini.'); return; }
+  if(!w){ toast('⚠️ Jendela cetak diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.'); return null; }
+
+  let halaman;
+  try{
+    toast('⏳ Menyiapkan ' + daftar.length + ' label...');
+    const labels = daftar.map(b => labelHTML(b, qrDataUrl(b.kode)));
+    halaman = [];
+    for(let i = 0; i < labels.length; i += LABEL_PER_HALAMAN){
+      halaman.push('<section class="hal">' + labels.slice(i, i + LABEL_PER_HALAMAN).join('') + '</section>');
+    }
+  }catch(e){
+    console.error('cetakLabelQR', e);
+    try{ w.close(); }catch(_){}
+    toast('❌ Gagal menyiapkan label. Coba pilih lebih sedikit.'); return null;
+  }
+
   w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8">
 <title>Label QR Buku — SUPAT LIBRARY</title>
 <style>
-  /* 3 kolom x 6 baris = 18 label per halaman A4, cukup lega untuk digunting */
+  /* A4 portrait, margin 8mm => area 194 x 281mm. 3 kolom x 6 baris @ 45mm = 270mm: muat dengan sisa 11mm.
+     Tiap halaman dibuat eksplisit (<section>) agar 18 label/halaman tidak bergantung pada pemecahan grid. */
   @page { size: A4 portrait; margin: 8mm; }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; color:#000; background:#fff; }
@@ -2699,44 +2733,51 @@ function cetakLabelQR(ids){
   .bar button{ font:inherit; font-weight:700; padding:7px 14px; border:0; border-radius:8px;
                background:#fff; color:#1B3B8F; cursor:pointer; }
   .petunjuk{ padding:8px 14px; font-size:12.5px; background:#eef3ff; color:#1B3B8F; }
-  .lembar{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0; padding:0; }
-  /* Tinggi 45mm dihitung agar SEMUA isi muat: merek + QR 20mm + kode + 2 baris judul.
-     6 baris x 45mm = 270mm, masih di dalam A4 (281mm setelah margin 8mm). */
+  .hal{ width:194mm; height:270mm; margin:0 auto 6mm; display:grid;
+        grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(6, 45mm); align-content:start; }
   .label{ border:1px dashed #999; padding:3.5mm 3mm; text-align:center;
           height:45mm; display:flex; flex-direction:column; align-items:center;
-          justify-content:flex-start; break-inside:avoid; page-break-inside:avoid; overflow:hidden; }
+          justify-content:flex-start; overflow:hidden; }
   .merek{ font-size:7pt; font-weight:700; letter-spacing:.06em; color:#1B3B8F; margin-bottom:1mm; }
   .qr{ width:20mm; height:20mm; display:block; image-rendering:pixelated; flex:none; }
   .kode{ font-family:'Courier New',monospace; font-size:9.5pt; font-weight:700;
          letter-spacing:.03em; margin-top:1.2mm; }
-  /* tinggi tetap 2 baris tanpa bergantung pada -webkit-line-clamp, yang tidak
-     selalu diterapkan saat rendering ke printer */
+  /* maksimal 2 baris; tinggi tetap sebagai cadangan bila line-clamp tidak diterapkan printer */
   .judul{ font-size:6.5pt; line-height:1.2; margin-top:1mm; width:100%;
-          height:2.4em; overflow:hidden; word-break:break-word; }
+          height:2.4em; overflow:hidden; word-break:break-word;
+          display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   @media print{
     .bar, .petunjuk{ display:none !important; }
+    .hal{ width:auto; margin:0; }
+    .hal:not(:last-child){ break-after:page; page-break-after:always; }
     .label{ border:1px dashed #bbb; }
   }
 </style></head><body>
 <div class="bar">
-  <span><b>${daftar.length} label</b> siap dicetak — potong mengikuti garis putus-putus.</span>
-  <button onclick="window.print()">🖨️ Cetak</button>
+  <span><b>${daftar.length} label</b> · perkiraan <b>${halaman.length} halaman A4</b> — potong mengikuti garis putus-putus.</span>
+  <button id="btnCetak" onclick="window.print()">🖨️ Cetak</button>
 </div>
 <div class="petunjuk">
   Pastikan pengaturan printer: ukuran <b>A4</b>, skala <b>100%</b> (jangan "fit to page"),
   dan matikan header/footer browser agar QR tidak mengecil.
 </div>
-<div class="lembar">${labels}</div>
-<script>window.onload=function(){ setTimeout(function(){ window.print(); }, 250); };<\/script>
+${halaman.join('')}
 </body></html>`);
   w.document.close();
+  return { ids: daftar.map(b => b.id), terpotong };
 }
 
-function cetakLabelTerpilih(){ cetakLabelQR([...bTerpilih]); }
+function cetakLabelTerpilih(){
+  const r = cetakLabelQR([...bTerpilih]);
+  // Bila dipotong oleh batas, label yang sudah disiapkan dikeluarkan dari pilihan: sisanya tinggal klik lagi.
+  if(r && r.terpotong){ r.ids.forEach(id => bTerpilih.delete(id)); renderBooks(); }
+}
 function cetakLabelBaruDibuat(){ cetakLabelQR(nbBaruDibuat); }
 function cetakLabelSatu(id){ cetakLabelQR([id]); }
 
-/* ---------- pilihan di tabel inventaris ---------- */
+/* ---------- pilihan di tabel inventaris ----------
+   Pilihan = daftar id eksemplar, terpisah dari filter: mengganti pencarian/filter
+   tidak menghapusnya. Id bersifat tetap, jadi refresh realtime tidak menggeser pilihan. */
 function bTogglePilih(id, on){
   if(on) bTerpilih.add(id); else bTerpilih.delete(id);
   bRenderAksiBar();
@@ -2745,17 +2786,35 @@ function bTogglePilihSemua(on){
   bBarisTampil.forEach(id => on ? bTerpilih.add(id) : bTerpilih.delete(id));
   renderBooks();
 }
+function bPilihSemuaHasilFilter(){
+  bHasilFilter.forEach(id => bTerpilih.add(id));
+  renderBooks();
+}
 function bBersihkanPilihan(){ bTerpilih.clear(); renderBooks(); }
 function bRenderAksiBar(){
   const bar = $('bAksiBar'); if(!bar) return;
-  bar.style.display = bTerpilih.size ? 'flex' : 'none';
-  $('bPilihInfo').textContent = bTerpilih.size + ' buku dipilih';
+  const n = bTerpilih.size;
+  bar.style.display = n ? 'flex' : 'none';
+  $('bPilihInfo').textContent = n + ' eksemplar dipilih';
+  $('bBtnCetak').textContent = '🖨️ Cetak Label Terpilih (' + n + ')';
+
+  const dalamFilter = bHasilFilter.filter(id => bTerpilih.has(id)).length;
+  const btn = $('bBtnSemuaFilter');
+  btn.style.display = bHasilFilter.length > dalamFilter ? '' : 'none';
+  btn.textContent = 'Pilih Semua Hasil Filter (' + bHasilFilter.length + ')';
+
+  const catatan = [Math.ceil(n / LABEL_PER_HALAMAN) + ' halaman A4 (perkiraan)'];
+  if(n > dalamFilter) catatan.push((n - dalamFilter) + ' terpilih tidak tampil di filter ini tapi tetap ikut dicetak');
+  if(n > LABEL_MAKS) catatan.push('maksimal ' + LABEL_MAKS + ' label sekali cetak; sisanya dicetak di putaran berikutnya');
+  $('bPilihCatatan').textContent = catatan.join(' · ');
+
   const semua = $('bPilihSemua');
   if(semua) semua.checked = bBarisTampil.length > 0 && bBarisTampil.every(id => bTerpilih.has(id));
 }
 
 /* ---------- INVENTARIS ---------- */
-let bBarisTampil = [];   // id eksemplar yang sedang tampil, untuk "pilih semua"
+let bBarisTampil = [];   // id eksemplar yang sedang tampil di tabel (checkbox header)
+let bHasilFilter = [];   // id SEMUA eksemplar yang lolos pencarian/filter ("Pilih Semua Hasil Filter")
 function renderTitleFilterOptions(){
   const select = $('bFilterTitle'); if(!select) return;
   const value = select.value;
@@ -2791,8 +2850,14 @@ function renderBooks(){
   const judulUnik = new Set(rows.map(b=>b.titleId || ('~'+b.judul))).size;
   $('bCount').textContent = rows.length + ' eksemplar · ' + judulUnik + ' judul';
 
+  // Eksemplar yang terhapus (mis. oleh petugas lain lewat realtime) dikeluarkan dari pilihan, dengan kabar.
+  const ada = new Set(DB.books.map(b=>b.id)); let hilang = 0;
+  bTerpilih.forEach(id=>{ if(!ada.has(id)){ bTerpilih.delete(id); hilang++; } });
+  if(hilang) toast('ℹ️ ' + hilang + ' eksemplar terpilih sudah dihapus dan dikeluarkan dari pilihan.');
+
   const tampil = rows.slice(0, bookLimit);
   bBarisTampil = tampil.map(b=>b.id);
+  bHasilFilter = rows.map(b=>b.id);
 
   $('bookTable').innerHTML = tampil.map(b=>`<tr>
     <td><input type="checkbox" style="width:auto" ${bTerpilih.has(b.id)?'checked':''}
@@ -2805,7 +2870,7 @@ function renderBooks(){
     <td>${esc(b.sumber)||'<i style="color:#999">belum didata</i>'}</td>
     <td>${KONDISI_LABEL[b.kondisi]||b.kondisi||'-'}</td>
     <td>${statusCopyBadge(b.statusCopy)}</td>
-    <td><button class="icon-btn" title="Cetak label QR buku ini" onclick="cetakLabelSatu('${b.id}')">🏷️</button>
+    <td><button class="icon-btn" title="Cetak Label" aria-label="Cetak Label" onclick="cetakLabelSatu('${b.id}')">🏷️</button>
         <button class="icon-btn" title="Ubah data buku" onclick="ubahBuku('${b.id}')">✏️</button></td></tr>`).join('')
     || '<tr><td colspan="8" style="text-align:center;padding:20px">Tidak ada buku yang cocok dengan pencarian.</td></tr>';
   $('bMoreBtn').style.display = rows.length > bookLimit ? '' : 'none';

@@ -98,7 +98,7 @@ const { chromium } = require('playwright');
     await firstCheckbox.check();
     const aksiBarTextTest5 = await page.textContent('#bPilihInfo');
     const isAksiBarVisibleTest5 = await page.isVisible('#bAksiBar');
-    const isTest5Pass = isAksiBarVisibleTest5 && aksiBarTextTest5.includes('1 buku dipilih');
+    const isTest5Pass = isAksiBarVisibleTest5 && aksiBarTextTest5.includes('1 eksemplar dipilih');
     results['TEST 5 — Select One'] = { pass: isTest5Pass, details: `AksiBar visible: ${isAksiBarVisibleTest5}, Text: '${aksiBarTextTest5}'` };
 
     // -------------------------------------------------------------
@@ -107,8 +107,8 @@ const { chromium } = require('playwright');
     const secondCheckbox = page.locator('#bookTable tr td input[type="checkbox"]').nth(1);
     await secondCheckbox.check();
     const aksiBarTextTest6 = await page.textContent('#bPilihInfo');
-    const isCetakBtnVisible = await page.isVisible('button:has-text("Cetak Label QR")');
-    const isTest6Pass = aksiBarTextTest6.includes('2 buku dipilih') && isCetakBtnVisible;
+    const isCetakBtnVisible = await page.isVisible('button:has-text("Cetak Label Terpilih")');
+    const isTest6Pass = aksiBarTextTest6.includes('2 eksemplar dipilih') && isCetakBtnVisible;
     results['TEST 6 — Select Multiple'] = { pass: isTest6Pass, details: `Text: '${aksiBarTextTest6}', QR button visible: ${isCetakBtnVisible}` };
 
     // -------------------------------------------------------------
@@ -170,7 +170,7 @@ const { chromium } = require('playwright');
     await page.locator('#bookTable tr td input[type="checkbox"]').first().check();
     const isMobileAksiBarVisible = await page.isVisible('#bAksiBar');
     const mobileAksiText = await page.textContent('#bPilihInfo');
-    const isTest13Pass = isMobileAksiBarVisible && mobileAksiText.includes('1 buku dipilih');
+    const isTest13Pass = isMobileAksiBarVisible && mobileAksiText.includes('1 eksemplar dipilih');
     results['TEST 13 — Mobile Selection'] = { pass: isTest13Pass, details: `AksiBar text on mobile: '${mobileAksiText}'` };
 
   } catch (err) {
