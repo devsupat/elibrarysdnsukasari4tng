@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SUPAT LIBRARY — Perpustakaan SDN Sukasari 4 Tangerang</title>
+<link rel="icon" type="image/png" href="logo_default.png">
+<link rel="apple-touch-icon" href="logo_default.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -723,7 +725,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   <span class="doodle-cloud" style="bottom:4px; left:30%">✏️</span>
   <span class="doodle-cloud" style="top:10px; left:46%">⭐</span>
   <div class="hwrap">
-    <div class="logo-box" id="logoBox">📚</div>
+    <div class="logo-box" id="logoBox"><img src="logo_default.png" alt="Logo SDN Sukasari 4"></div>
     <div class="htitle">
       <h1>SUPAT LIBRARY</h1>
       <p>Perpustakaan SDN Sukasari 4 Kota Tangerang</p>
@@ -1845,11 +1847,11 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
 
     <div class="card alt">
-      <h2>🖼️ Foto / Thumbnail Website</h2>
-      <p class="subtitle">Unggah logo atau foto perpustakaan — akan tampil di pojok kiri atas website.</p>
+      <h2>🖼️ Foto / Logo Website</h2>
+      <p class="subtitle">Aplikasi menggunakan <b>logo_default.png</b> sebagai logo bawaan. Anda dapat mengunggah logo atau foto kustom jika diinginkan.</p>
       <input type="file" id="thumbFile" accept="image/*">
-      <button class="btn" onclick="uploadThumb()">⬆️ Pasang Foto</button>
-      <button class="btn red small" onclick="removeThumb()">🗑️ Hapus Foto</button>
+      <button class="btn" onclick="uploadThumb()">⬆️ Pasang Foto Baru</button>
+      <button class="btn red small" onclick="removeThumb()">🗑️ Reset ke Logo Default</button>
       <h3 style="margin-top:14px">⚠️ Zona Bahaya</h3>
       <button class="btn red small" onclick="if(confirm('Yakin hapus SEMUA data? Ekspor dulu sebagai cadangan!')){resetAll()}">🗑️ Hapus Semua Data</button>
     </div>
@@ -1860,7 +1862,12 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <footer class="pub-footer">
   <div class="pub-footer-wrap">
     <div class="pub-footer-brand">
-      <h3>📚 SUPAT LIBRARY</h3>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:38px;height:38px;background:#fff;border:2px solid var(--blue);border-radius:10px;padding:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <img src="logo_default.png" alt="Logo SDN Sukasari 4" style="width:100%;height:100%;object-fit:contain;border-radius:6px">
+        </div>
+        <h3 style="margin:0;font-size:22px;color:var(--blue-dark)">SUPAT LIBRARY</h3>
+      </div>
       <p>Perpustakaan Digital SDN Sukasari 4 Kota Tangerang</p>
       <p style="font-size:12px;color:#7a99d6;margin-top:6px">Jl. Moh. Yamin No. 1, Kelurahan Babakan, Kecamatan Tangerang, Kota Tangerang, Banten</p>
     </div>
@@ -4982,8 +4989,12 @@ function printQR(){
   const img = $('qrBox').querySelector('img') || $('qrBox').querySelector('canvas');
   if(!img){ toast('⚠️ Buat QR dulu'); return; }
   const src = img.tagName==='IMG' ? img.src : img.toDataURL();
+  const logoUrl = DB.settings.thumb || 'logo_default.png';
   $('qr-print-area').innerHTML = `<div style="text-align:center;padding:40px;font-family:'Patrick Hand',cursive">
-    <h1 style="font-size:40px;color:#1B3B8F">📚 SUPAT LIBRARY</h1>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px">
+      <img src="${logoUrl}" style="width:60px;height:60px;object-fit:contain">
+      <h1 style="font-size:40px;color:#1B3B8F;margin:0">SUPAT LIBRARY</h1>
+    </div>
     <p style="font-size:20px">Perpustakaan SDN Sukasari 4 Kota Tangerang</p>
     <img src="${src}" style="width:300px;height:300px;margin:24px;border:6px dashed #2B6CE6;padding:14px;border-radius:24px">
     <p style="font-size:22px">📱 Scan untuk membuka website perpustakaan!</p></div>`;
@@ -5099,13 +5110,14 @@ function uploadThumb(){
   };
   reader.readAsDataURL(f);
 }
-function removeThumb(){ DB.settings.thumb=''; saveDB(); applyThumb(); toast('🗑️ Foto dihapus'); }
+const DEFAULT_LOGO = 'logo_default.png';
+function removeThumb(){ DB.settings.thumb=''; saveDB(); applyThumb(); toast('🗑️ Kembali ke logo default'); }
 function applyThumb(){
   const t = DB.settings.thumb;
   const box = $('logoBox');
   if(!box) return;
   if(!t){
-    box.innerHTML = '📚';
+    box.innerHTML = `<img src="${DEFAULT_LOGO}" alt="Logo SDN Sukasari 4">`;
   } else {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -5114,13 +5126,13 @@ function applyThumb(){
       box.innerHTML = `<img src="${cleaned}" alt="logo">`;
     };
     img.onerror = () => {
-      box.innerHTML = `<img src="${t}" alt="logo">`;
+      box.innerHTML = `<img src="${DEFAULT_LOGO}" alt="logo">`;
     };
     img.src = t;
   }
   let link = document.querySelector("link[rel='icon']");
   if(!link){ link = document.createElement('link'); link.rel='icon'; document.head.appendChild(link); }
-  link.href = t || 'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>');
+  link.href = t || DEFAULT_LOGO;
 }
 
 /* =================== INIT =================== */
@@ -5539,7 +5551,9 @@ function renderStudentArea(d){
 <!-- Overlay login: tampil hanya bila dipanggil secara eksplisit (Area Petugas / internal page without auth). -->
 <div id="sbAuth" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;z-index:99999;background:rgba(27,59,143,0.95);backdrop-filter:blur(6px);align-items:center;justify-content:center;font-family:Nunito,system-ui,Arial">
   <div style="background:#fff;max-width:360px;width:90%;padding:26px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center">
-    <div style="font-size:40px">📚</div>
+    <div style="display:flex;justify-content:center;margin-bottom:10px">
+      <div class="logo-box" style="transform:none;margin:0 auto;box-shadow:0 4px 10px rgba(0,0,0,0.1);"><img src="logo_default.png" alt="Logo SDN Sukasari 4"></div>
+    </div>
     <h2 style="color:#1B3B8F;margin:6px 0 2px">SUPAT LIBRARY</h2>
     <div style="font-size:12px;color:#4a6bb5;margin-bottom:16px">Login Petugas · Perpustakaan SDN Sukasari 4</div>
     <input id="sbEmail" type="email" placeholder="Email petugas" autocomplete="username"
