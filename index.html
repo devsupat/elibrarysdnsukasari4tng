@@ -600,6 +600,13 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 .cat-pill { font-size: 11px; background: var(--sky2); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
 
 /* Student Access UI Skeleton States */
+.stu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stu-stat{border:2px solid;border-radius:14px;padding:10px 12px;background:#fff}
+.stu-num{font-family:'Patrick Hand',cursive;font-size:34px;line-height:1;color:var(--blue-dark)}
+.stu-lbl{font-weight:800;font-size:14px;margin-top:4px}
+.stu-ket{font-size:12px;color:#4a6bb5;margin-top:2px}
+.stu-note{font-size:12px;color:#4a6bb5;margin-top:16px;line-height:1.5}
+@media(min-width:720px){.stu-grid{grid-template-columns:repeat(4,1fr)}}
 .stu-access-container {
   background: #fff;
   border: 3px solid var(--blue);
@@ -1152,7 +1159,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <!-- STATE 1: INITIAL STATE -->
     <div id="stuStateInitial" class="stu-state-box">
       <div style="text-align:center;padding:16px 0">
-        <button class="btn green" style="font-size:18px;padding:14px 28px" onclick="stuScanStart()">📷 [ Buka Kamera Scan Barcode STU ]</button>
+        <button class="btn green" style="font-size:18px;padding:14px 28px" onclick="stuScanStart()">📷 Scan Kartu dengan Kamera</button>
         <div style="margin:16px 0;font-size:13px;color:#888">— ATAU MASUKKAN MANUAL —</div>
         <div style="display:flex;gap:8px;max-width:380px;margin:0 auto">
           <input type="text" id="stuInputManual" placeholder="cth: 126010800001" style="text-align:center;font-weight:800;letter-spacing:1px"
@@ -1179,8 +1186,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div id="stuStateLoading" class="stu-state-box" style="display:none">
       <div style="text-align:center;padding:30px 0">
         <div class="spinner"></div>
-        <h3 style="color:var(--blue-dark);margin-top:12px">Memverifikasi Barcode STU...</h3>
-        <p style="font-size:13px;color:#666">Menghubungkan ke database sekolah Supabase</p>
+        <h3 style="color:var(--blue-dark);margin-top:12px">Mencari kartumu...</h3>
+        <p style="font-size:13px;color:#666">Tunggu sebentar ya</p>
       </div>
     </div>
 
@@ -1188,8 +1195,18 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <div id="stuStateNotfound" class="stu-state-box" style="display:none">
       <div style="text-align:center;padding:20px 0">
         <div style="font-size:48px">⚠️</div>
-        <h3 style="color:var(--bad);margin:8px 0">Barcode STU Tidak Ditemukan</h3>
-        <p style="font-size:13.5px;color:#555;max-width:380px;margin:0 auto 16px">Barcode ID tidak terdaftar dalam data siswa aktif. Pastikan kartu yang digunakan adalah kartu resmi SDN Sukasari 4.</p>
+        <h3 style="color:var(--bad);margin:8px 0">Kartu Tidak Ditemukan</h3>
+        <p style="font-size:13.5px;color:#555;max-width:380px;margin:0 auto 16px">Nomor kartu ini tidak ada di data perpustakaan. Periksa lagi nomornya, atau tanya petugas perpustakaan.</p>
+        <button class="btn" onclick="setStuUiState('initial')">🔄 Coba Lagi</button>
+      </div>
+    </div>
+
+    <!-- STATE 4b: GAGAL JARINGAN / RESPONS TIDAK VALID -->
+    <div id="stuStateError" class="stu-state-box" style="display:none">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px">📡</div>
+        <h3 style="color:var(--bad);margin:8px 0">Belum Bisa Membuka Data</h3>
+        <p id="stuErrMsg" style="font-size:13.5px;color:#555;max-width:380px;margin:0 auto 16px"></p>
         <button class="btn" onclick="setStuUiState('initial')">🔄 Coba Lagi</button>
       </div>
     </div>
@@ -2252,7 +2269,7 @@ document.addEventListener('touchend', e => {
 
 /* =================== STUDENT STU ACCESS UI STATES =================== */
 function setStuUiState(state) {
-  const states = ['initial', 'scanning', 'loading', 'notfound', 'success'];
+  const states = ['initial', 'scanning', 'loading', 'notfound', 'error', 'success'];
   states.forEach(s => {
     const el = $('stuState' + s.charAt(0).toUpperCase() + s.slice(1));
     if (el) el.style.display = (s === state) ? 'block' : 'none';
@@ -5100,8 +5117,6 @@ async function pubBoot(){
     renderPubCatalog();
     renderPubHomePreview();
   }catch(e){ pubCatalogError(e); }
-  // Pulihkan sesi siswa (sessionStorage, bukan localStorage permanen) — hanya siswa ini
-  try{ const raw = sessionStorage.getItem('stuSession'); if(raw){ PUB.student = JSON.parse(raw); renderStudentArea(PUB.student); setStuUiState('success'); } }catch(e){}
 }
 function pubStatsError(){ ['pubStatMembers','pubStatBooks','pubStatLoans','pubStatKarya'].forEach(id=>{ const el=$(id); if(el) el.textContent='—'; }); }
 function pubCatalogError(e){
@@ -5156,26 +5171,35 @@ function renderPubHomePreview(){
 // Validasi server = otoritatif; client-side hanya filter obvious noise.
 function stuNormalizeKey(raw){ return String(raw||'').trim().toUpperCase().replace(/\s+/g,''); }
 function stuValidFormat(k){
-  // Numerik 10+ digit (format kartu sekolah nyata: min 10, max 12)
-  if(/^[0-9]{10,}$/.test(k)) return true;
-  // Format STU-XXXXXXXX (prefix dokumen/legacy, belum dipakai di data aktual)
-  if(/^STU-[0-9A-Z]{4,}$/.test(k)) return true;
-  return false;
+  // Hanya buang noise jelas. Server yang memutuskan kartu sah atau tidak
+  // (kartu aktif ada yang berformat selain STU-… dan angka).
+  return /^[0-9A-Z][0-9A-Z._-]{3,63}$/.test(k);
 }
+let stuSeq = 0;   // respons lama tidak boleh menimpa scan yang lebih baru
 async function stuHandleKey(raw){
   const key = stuNormalizeKey(raw);
-  if(!stuValidFormat(key)){ toast('⚠️ Format tidak dikenali. Masukkan nomor kartu sekolah (mis: 126010800001) atau scan QR pada kartu.'); setStuUiState('initial'); return; }
+  if(!stuValidFormat(key)){ toast('⚠️ Nomor kartu belum benar. Scan QR di kartu, atau ketik nomor kartunya.'); setStuUiState('initial'); return; }
   stuScanStop();
   setStuUiState('loading');
-  if(!(window.LibraryAPI && LibraryAPI.enabled)){ toast('⚠️ Database online belum siap.'); setStuUiState('notfound'); return; }
+  const my = ++stuSeq;
+  if(!(window.LibraryAPI && LibraryAPI.enabled)){ stuGagal('Database belum siap. Coba lagi sebentar.'); return; }
   try{
     const res = await LibraryAPI.studentLookup(key);
-    if(res && res.found){
+    if(my !== stuSeq) return;
+    if(res && res.found && res.statistik){
       PUB.student = res;
-      try{ sessionStorage.setItem('stuSession', JSON.stringify(res)); }catch(e){}
       renderStudentArea(res); setStuUiState('success');
-    } else { setStuUiState('notfound'); }
-  }catch(e){ console.error('stu lookup', e); setStuUiState('notfound'); }
+    } else if(res && res.found === false){ PUB.student = null; setStuUiState('notfound'); }
+    else { stuGagal('Jawaban dari server tidak lengkap. Coba lagi.'); }
+  }catch(e){
+    console.error('stu lookup', e);
+    if(my === stuSeq) stuGagal(LibraryAPI.msg(e));
+  }
+}
+function stuGagal(pesan){
+  PUB.student = null;
+  const el = $('stuErrMsg'); if(el) el.textContent = pesan;
+  setStuUiState('error');
 }
 function stuManualSubmit(){ stuHandleKey($('stuInputManual') ? $('stuInputManual').value : ''); }
 async function stuScanStart(){
@@ -5216,40 +5240,52 @@ function stuScanStop(){
   PUB.scan=null;
 }
 function stuLogout(){
-  stuScanStop(); PUB.student=null;
-  try{ sessionStorage.removeItem('stuSession'); }catch(e){}
+  stuScanStop(); PUB.student=null; stuSeq++;
   const i=$('stuInputManual'); if(i) i.value='';
   setStuUiState('initial');
 }
+
+function stuAngka(n, label, ket, warna){
+  return `<div class="stu-stat" style="border-color:${warna}"><div class="stu-num">${n}</div>
+    <div class="stu-lbl">${label}</div><div class="stu-ket">${ket}</div></div>`;
+}
 function renderStudentArea(d){
   const box=$('stuStateSuccess'); if(!box || !d) return;
-  const loans=(d.loans||[]);
-  const active=loans.filter(l=>!l.kembali);
-  const lifeBadge = d.lifecycle==='AKTIF' ? 'b-green' : 'b-gray';
-  const activeHtml = active.length ? active.map(l=>{
-    const overdue = todayStr() > (l.batas||'');
-    const found = PUB.books.find(b=>b.kode===l.kode || b.judul===l.judul);
-    return `<div class="pub-book-card" style="margin:10px 0">${bookCoverHTML(found&&found.coverUrl)}<div class="book-details">
-      <span class="badge ${overdue?'b-red':'b-orange'}">${overdue?'⏰ Terlambat':'Sedang Dipinjam'}</span>
-      <h4>${esc(l.judul||'-')}</h4>
-      <p>Tgl Pinjam: <b>${fmtDate(l.pinjam)}</b> · Batas Kembali: <b>${fmtDate(l.batas)}</b></p>
-    </div></div>`;
-  }).join('') : '<p style="text-align:center;color:#4a6bb5;padding:14px">Belum ada buku yang sedang kamu pinjam 📚</p>';
+  const st=d.statistik||{}, aktif=d.dipinjam||[], riw=d.riwayat||[];
+  const ikon={kunjungan:'🖐️',baca:'📖',pulang:'🏠',kelas:'🏫'};
+  const teks=r=>({
+    kunjungan:'Datang ke perpustakaan',
+    baca:'Membaca di tempat: <b>'+esc(r.judul||'sebuah buku')+'</b>',
+    pulang:'Pinjam pulang: <b>'+esc(r.judul||'sebuah buku')+'</b>'+(r.kembali?' · sudah dikembalikan':' · belum dikembalikan'),
+    kelas:'Mewakili kelas meminjam: <b>'+esc(r.judul||'sebuah buku')+'</b>'
+  })[r.jenis]||'';
+  const aktifHtml = aktif.length ? aktif.map(l=>`<div class="rank"><div class="info">
+      <b style="white-space:normal">${esc(l.judul||'-')}</b>
+      <span>${l.jenis==='kelas'?'Untuk kelas · ':''}Pinjam ${fmtDate(l.pinjam)} · harus kembali ${fmtDate(l.batas)}</span></div>
+      <span class="badge ${l.terlambat?'b-red':'b-orange'}">${l.terlambat?'⏰ Sudah lewat waktu':'Sedang dipinjam'}</span></div>`).join('')
+    : '<p style="text-align:center;color:#4a6bb5;padding:12px">Tidak ada buku yang sedang kamu pinjam 📚</p>';
+  const riwHtml = riw.length ? riw.map(r=>`<div class="rank"><div class="medal" style="font-size:18px">${ikon[r.jenis]||'•'}</div>
+      <div class="info"><b style="white-space:normal;font-weight:700">${teks(r)}</b><span>${fmtDate(r.tanggal)}</span></div></div>`).join('')
+    : '<p style="text-align:center;color:#4a6bb5;padding:12px">Belum ada aktivitas tercatat.</p>';
+  const perbarui = d.diperbarui ? new Date(d.diperbarui).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
   box.innerHTML = `
-    <div style="background:var(--sky);border:2px solid var(--blue);border-radius:16px;padding:16px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:36px">🧑‍🎓</div>
-        <div>
-          <span class="badge ${lifeBadge}">${esc(d.status||'-')} · ${esc(d.lifecycle||'-')}</span>
-          <h3 style="color:var(--blue-dark);margin:2px 0">${esc(d.nama||'-')}</h3>
-          <p style="font-size:13px;color:#4a6bb5">Kelas ${esc(d.kelas||'-')}${d.rombel?' '+esc(d.rombel):''}</p>
-        </div>
-      </div>
+    <div style="background:var(--sky);border:2px solid var(--blue);border-radius:16px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:34px">🧑‍🎓</div>
+      <div><h3 style="color:var(--blue-dark);margin:0">${esc(d.nama||'-')}</h3>
+        <p style="font-size:13px;color:#4a6bb5;margin:2px 0 0">Kelas ${esc(d.kelas||'-')}${d.rombel?' '+esc(d.rombel):''}${d.lifecycle&&d.lifecycle!=='AKTIF'?' · '+esc(d.lifecycle):''}</p></div>
     </div>
-    <h3>📖 Peminjaman Aktif Saya</h3>
-    ${activeHtml}
-    <div style="text-align:center;margin-top:20px">
-      <button class="btn ghost small" onclick="stuLogout()">🚪 Keluar Akses Saya</button>
+    <div class="stu-grid">
+      ${stuAngka(st.kunjungan||0,'Hari datang','Berapa hari kamu datang ke perpustakaan','#2e86de')}
+      ${stuAngka(st.baca_ditempat||0,'Baca di tempat','Berapa kali buku dibaca di perpustakaan','#27ae60')}
+      ${stuAngka(st.pinjam_pulang||0,'Buku dibawa pulang','Jumlah buku yang kamu pinjam untuk dibawa pulang','#e67e22')}
+      ${stuAngka(st.sesi_kelas||0,'Pinjam untuk kelas','Berapa kali kamu mewakili kelas meminjam buku'+(st.buku_kelas?' ('+st.buku_kelas+' buku)':''),'#8e44ad')}
+    </div>
+    <h3 style="margin-top:18px">📖 Buku yang Sedang Kamu Pinjam</h3>${aktifHtml}
+    <h3 style="margin-top:18px">🕑 Kegiatan Terakhir</h3>${riwHtml}
+    <p class="stu-note">Data dihitung sejak ${d.sejak?fmtDateLong(d.sejak):'awal pencatatan'} sampai ${fmtDateLong(d.tanggal)}. Diperbarui ${esc(perbarui)} WIB.<br>
+      Angka ini bisa dilihat siapa saja yang memegang kartumu — jaga kartu dan nomornya baik-baik.</p>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn" onclick="stuLogout()">🔄 Scan Kartu Lain</button>
     </div>`;
 }
 
