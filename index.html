@@ -1659,25 +1659,30 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <!-- ============ EBOOK ============ -->
 <div class="page" id="page-ebook">
   <div class="card">
-    <h2>➕ Tambah E-Book</h2>
-    <p class="subtitle">Unggah file PDF kecil (maks ± 2,5 MB) <b>atau</b> tempel tautan Google Drive untuk file besar.</p>
+    <h2 id="eFormTitle">➕ Tambah E-Book</h2>
+    <p class="subtitle">E-book disimpan sebagai <b>tautan</b>. Unggah PDF ke Google Drive (atau situs lain) lebih dulu, lalu tempel tautan berbaginya di sini.</p>
+    <div id="eLamaBox" style="display:none;margin:8px 0 12px;padding:10px 12px;background:#fff7e6;border:2px solid var(--orange,#e67e22);border-radius:12px"></div>
+    <input type="hidden" id="eId">
     <div class="frow">
       <div><label>Judul E-Book *</label><input id="eJudul" placeholder="cth: DONGENG NUSANTARA"></div>
-      <div><label>Pengarang</label><input id="ePengarang"></div>
-      <div><label>Kategori</label><input id="eKategori" placeholder="cth: Dongeng / Sains / Komik"></div>
+      <div><label>Pengarang <small style="font-weight:400">(boleh kosong)</small></label><input id="ePengarang"></div>
+      <div><label>Kategori *</label><input id="eKategori" list="eKategoriList" autocomplete="off" placeholder="cth: Dongeng / Sains / Komik"></div>
     </div>
-    <label>Cara 1 — Unggah file PDF (maks ± 2,5 MB)</label>
-    <input type="file" id="eFile" accept="application/pdf">
-    <label>Cara 2 — Tautan (Google Drive / website)</label>
-    <input id="eLink" placeholder="https://drive.google.com/file/d/....">
-    <div class="hint">💡 Untuk tautan Google Drive: klik kanan file → <b>Bagikan</b> → ubah ke <b>"Siapa saja yang memiliki link"</b> agar bisa dibuka siswa.</div>
-    <button class="btn green" onclick="saveEbook()">💾 Simpan E-Book</button>
+    <datalist id="eKategoriList"></datalist>
+    <label>Tautan E-Book *</label>
+    <input id="eLink" inputmode="url" autocomplete="off" placeholder="https://drive.google.com/file/d/...">
+    <div id="eErr" role="alert" style="display:none;margin:6px 0;color:var(--bad);font-weight:700"></div>
+    <div class="hint">💡 Pakai Google Drive? Pastikan akses file sudah diatur agar siswa yang dituju dapat membukanya.
+      Gunakan tombol <b>Uji Tautan</b> untuk mencoba membukanya sebelum disimpan.</div>
+    <button class="btn green" id="eBtnSimpan" onclick="saveEbook()">💾 Simpan E-Book</button>
+    <button class="btn ghost" onclick="ujiTautanEbook()">🔗 Uji Tautan</button>
+    <button class="btn ghost" id="eBtnBatal" style="display:none" onclick="resetEbookForm()">Batal</button>
   </div>
 
   <div class="card alt">
     <h2>📱 Rak E-Book <span id="eCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
-    <div class="search-bar"><input id="eSearch" placeholder="🔍 Cari judul e-book..."></div>
+    <div class="search-bar"><input id="eSearch" placeholder="🔍 Cari judul, pengarang, atau kategori..."></div>
     <div class="grid3" id="ebookList"></div>
   </div>
 </div>
@@ -1869,15 +1874,6 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   </div>
 </div>
 
-<!-- Modal baca ebook -->
-<div class="modal-bg" id="ebookModal">
-  <div class="modal" style="max-width:900px; height:90vh; display:flex; flex-direction:column">
-    <span class="close-x" onclick="closeEbookReader()">✖</span>
-    <h2 class="doodle-font" id="ebookReaderTitle" style="font-size:22px; margin-bottom:8px; padding-right:30px">📖</h2>
-    <iframe id="ebookFrame" style="flex:1; width:100%; border:2px solid var(--line); border-radius:12px; background:#f5f5f5"></iframe>
-  </div>
-</div>
-
 <!-- Modal struk preview -->
 <div class="modal-bg" id="strukModal">
   <div class="modal">
@@ -1972,7 +1968,7 @@ const hasLocal = (()=>{ try{ localStorage.setItem('__t','1'); localStorage.remov
 function freshDB(){
   return {
     members: [], books: [], titles: [],
-    loans: [], visits: [], ebooks: [], karya: [], attendance: [],
+    loans: [], visits: [], ebooks: [], ebooksLama: [], karya: [], attendance: [],
     settings: { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'', tahunAjaran:'' },
     seq: { m: 1, b: 1, l: 1, v: 1, e: 1, k: 1, as: 1 },
     dataVer: 3
@@ -2004,6 +2000,14 @@ async function loadDB(){
   }
   if(!DB.settings) DB.settings = { gsUrl:'', gsAuto:false, lastSync:'', thumb:'', qrUrl:'' };
   if(!DB.ebooks) DB.ebooks = [];
+  // E-book kini disimpan di database pusat. Entri bentuk lama (punya field "mode": file/link, hanya
+  // di perangkat ini) dipisahkan, TIDAK dihapus, supaya bisa dipindahkan petugas lewat tombol di halaman E-Book.
+  if(!DB.ebooksLama) DB.ebooksLama = [];
+  if(DB.ebooks.some(e=>e.mode)){
+    DB.ebooksLama = DB.ebooksLama.concat(DB.ebooks.filter(e=>e.mode));
+    DB.ebooks = DB.ebooks.filter(e=>!e.mode);
+    saveDB();
+  }
   if(!DB.karya) DB.karya = [];
   if(!DB.titles) DB.titles = [];   // judul/bibliografi; terisi dari server saat petugas login
   if(!DB.seq) DB.seq = { m: DB.members.length+1, b: DB.books.length+1, l: DB.loans.length+1, v: DB.visits.length+1 };
@@ -3809,80 +3813,161 @@ function renderStats(){
        })();
 }
 
-/* =================== EBOOK =================== */
-const EBOOK_MAX = 2.6 * 1024 * 1024; // ± 2,5 MB
-function saveEbook(){
+/* =================== EBOOK ===================
+   Basis data hanya menyimpan METADATA + tautan eksternal (tabel ebooks). Tidak ada
+   file PDF yang diunggah/disalin ke Supabase. "Baca Digital" membuka tautan di tab baru;
+   hak akses ikut aturan sumbernya (mis. izin berbagi Google Drive). Menghapus e-book hanya
+   menghapus barisnya di sini — file di Drive/website sumber tidak disentuh. */
+
+/* Validasi format saja. Tidak ada permintaan ke tautan itu (tak ada cara aman memastikan
+   file benar-benar bisa dibuka siswa); petugas menguji manual lewat tombol "Uji Tautan". */
+function ebookCekTautan(raw){
+  const t = String(raw||'').trim();
+  if(!t) return { ok:false, err:'Tautan e-book wajib diisi.' };
+  if(/\s/.test(t)) return { ok:false, err:'Tautan tidak boleh mengandung spasi. Salin ulang tautan dari Google Drive atau situs sumbernya.' };
+  if(!/^https?:\/\//i.test(t)) return { ok:false, err:'Ini bukan tautan yang bisa dipakai. Tautan harus diawali https:// — contoh: https://drive.google.com/file/d/...' };
+  let u; try{ u = new URL(t); }catch(e){ return { ok:false, err:'Tautan tidak lengkap atau salah ketik. Salin ulang dari sumbernya.' }; }
+  if(!u.hostname.includes('.')) return { ok:false, err:'Alamat situs pada tautan tidak lengkap.' };
+  return { ok:true, url:t, host:u.hostname.replace(/^www\./,'') };
+}
+function ebookTampilErr(msg){
+  const el = $('eErr'); el.textContent = msg || ''; el.style.display = msg ? '' : 'none';
+}
+function ebookRenderKategori(){
+  const seen = new Map();
+  DB.ebooks.forEach(e=>{ const k=(e.kategori||'').trim(); if(k && !seen.has(k.toLowerCase())) seen.set(k.toLowerCase(), k); });
+  $('eKategoriList').innerHTML = [...seen.values()].sort((a,b)=>a.localeCompare(b,'id'))
+    .map(k=>`<option value="${esc(k)}">`).join('');
+}
+/* Ejaan kategori yang sudah ada dipakai ulang (Komik / komik / KOMIK jadi satu). */
+function ebookKategoriBaku(k){
+  const t = k.trim().replace(/\s+/g,' ');
+  const ada = DB.ebooks.find(e=>(e.kategori||'').trim().toLowerCase() === t.toLowerCase());
+  return ada ? ada.kategori.trim() : t;
+}
+
+async function saveEbook(){
+  ebookTampilErr('');
+  if(!SB_ENABLED){ toast('⚠️ Butuh koneksi database online untuk menyimpan e-book.'); return; }
   const judul = $('eJudul').value.trim().toUpperCase();
-  if(!judul){ toast('⚠️ Judul e-book wajib diisi!'); return; }
-  const f = $('eFile').files[0];
-  const link = $('eLink').value.trim();
-  if(!f && !link){ toast('⚠️ Unggah file PDF atau isi tautannya'); return; }
-  const base = { id:'E'+String(DB.seq.e++).padStart(4,'0'), judul,
-    pengarang:$('ePengarang').value.trim(), kategori:$('eKategori').value.trim(), dibaca:0 };
-  if(f){
-    if(f.size > EBOOK_MAX){ toast('⚠️ File '+(f.size/1048576).toFixed(1)+' MB — terlalu besar. Pakai tautan Google Drive saja (Cara 2).'); return; }
-    const reader = new FileReader();
-    reader.onload = async e=>{
-      base.mode = 'file'; base.fileKey = 'supat-ebook-'+base.id; base.fileName = f.name;
-      base.size = (f.size/1048576).toFixed(2)+' MB';
-      const ok = await fileSet(base.fileKey, e.target.result);
-      if(!ok){ toast('❌ Gagal menyimpan file'); return; }
-      DB.ebooks.unshift(base); saveDB(); resetEbookForm(); renderEbooks();
+  const kategori = $('eKategori').value.trim();
+  if(!judul){ ebookTampilErr('Judul e-book wajib diisi.'); $('eJudul').focus(); return; }
+  if(!kategori){ ebookTampilErr('Kategori wajib diisi.'); $('eKategori').focus(); return; }
+  const cek = ebookCekTautan($('eLink').value);
+  if(!cek.ok){ ebookTampilErr(cek.err); $('eLink').focus(); return; }
+
+  const data = { judul, pengarang:$('ePengarang').value.trim(), kategori:ebookKategoriBaku(kategori), url:cek.url };
+  const id = $('eId').value;
+  const btn = $('eBtnSimpan'); btn.disabled = true;
+  try{
+    if(id){
+      const lama = DB.ebooks.find(x=>x.id===id);
+      const baru = await LibraryAPI.updateEbook(id, data);
+      baru.dibaca = lama ? lama.dibaca : baru.dibaca;
+      DB.ebooks = DB.ebooks.map(x=>x.id===id ? baru : x);
+      toast('✅ E-book "'+judul+'" diperbarui');
+    } else {
+      DB.ebooks.unshift(await LibraryAPI.addEbook(data));
       toast('✅ E-book "'+judul+'" masuk rak!');
-    };
-    reader.readAsDataURL(f);
-  } else {
-    base.mode = 'link'; base.url = link;
-    DB.ebooks.unshift(base); saveDB(); resetEbookForm(); renderEbooks();
-    toast('✅ E-book "'+judul+'" masuk rak!');
-  }
+    }
+    saveDB(); resetEbookForm(); renderEbooks();
+  }catch(e){ ebookTampilErr(LibraryAPI.msg(e)); }
+  finally{ btn.disabled = false; }
 }
-function resetEbookForm(){ ['eJudul','ePengarang','eKategori','eLink'].forEach(i=>$(i).value=''); $('eFile').value=''; }
-function driveEmbed(url){
-  const m = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
-  if(m) return 'https://drive.google.com/file/d/'+m[1]+'/preview';
-  return url;
+function resetEbookForm(){
+  ['eId','eJudul','ePengarang','eKategori','eLink'].forEach(i=>$(i).value='');
+  ebookTampilErr('');
+  $('eFormTitle').textContent = '➕ Tambah E-Book';
+  $('eBtnSimpan').textContent = '💾 Simpan E-Book';
+  $('eBtnBatal').style.display = 'none';
 }
-async function openEbook(id){
+function editEbook(id){
   const e = DB.ebooks.find(x=>x.id===id); if(!e) return;
-  e.dibaca = (e.dibaca||0)+1; saveDB(); renderEbooks();
-  if(e.mode==='link'){
-    $('ebookReaderTitle').textContent = '📖 '+e.judul;
-    $('ebookFrame').src = driveEmbed(e.url);
-    $('ebookModal').classList.add('show');
-    return;
-  }
-  const dataUrl = await fileGet(e.fileKey);
-  if(!dataUrl){ toast('❌ File tidak ditemukan di perangkat ini. Unggah ulang atau pakai tautan.'); return; }
-  const bin = atob(dataUrl.split(',')[1]);
-  const arr = new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-  const blobUrl = URL.createObjectURL(new Blob([arr], {type:'application/pdf'}));
-  $('ebookReaderTitle').textContent = '📖 '+e.judul;
-  $('ebookFrame').src = blobUrl;
-  $('ebookModal').classList.add('show');
+  $('eId').value = e.id; $('eJudul').value = e.judul; $('ePengarang').value = e.pengarang||'';
+  $('eKategori').value = e.kategori||''; $('eLink').value = e.url||'';
+  ebookTampilErr('');
+  $('eFormTitle').textContent = '✏️ Ubah E-Book';
+  $('eBtnSimpan').textContent = '💾 Simpan Perubahan';
+  $('eBtnBatal').style.display = '';
+  $('eFormTitle').scrollIntoView({ behavior:'smooth', block:'start' });
 }
-function closeEbookReader(){ $('ebookModal').classList.remove('show'); $('ebookFrame').src = 'about:blank'; }
+function ujiTautanEbook(){
+  const cek = ebookCekTautan($('eLink').value);
+  if(!cek.ok){ ebookTampilErr(cek.err); return; }
+  ebookTampilErr('');
+  window.open(cek.url, '_blank', 'noopener,noreferrer');
+}
+/* Hitungan "dibaca" hanyalah pelengkap: gagal mencatat tidak boleh menghalangi pembacaan. */
+function ebookDibaca(id){
+  const e = DB.ebooks.find(x=>x.id===id); if(!e) return;
+  e.dibaca = (e.dibaca||0) + 1;
+  const el = $('eRead-'+id); if(el) el.textContent = e.dibaca;
+  saveDB();
+  LibraryAPI.addEbookRead(id, e.dibaca).catch(err=>console.warn('catat dibaca', err));
+}
 async function delEbook(id){
-  const e = DB.ebooks.find(x=>x.id===id);
-  if(!confirm('Hapus e-book "'+e.judul+'"?')) return;
-  if(e.fileKey) await fileDel(e.fileKey);
-  DB.ebooks = DB.ebooks.filter(x=>x.id!==id);
-  saveDB(); renderEbooks(); toast('🗑️ E-book dihapus');
+  const e = DB.ebooks.find(x=>x.id===id); if(!e) return;
+  if(!confirm('Hapus e-book "'+e.judul+'" dari daftar?\n\nHanya catatannya di SUPAT LIBRARY yang dihapus. File aslinya di Google Drive / situs sumber TIDAK ikut terhapus.')) return;
+  try{
+    await LibraryAPI.deleteEbook(id);
+    DB.ebooks = DB.ebooks.filter(x=>x.id!==id);
+    if($('eId').value === id) resetEbookForm();
+    saveDB(); renderEbooks(); toast('🗑️ E-book dihapus dari daftar');
+  }catch(err){ toast('❌ '+LibraryAPI.msg(err)); }
 }
+
+/* E-book lama (PDF di perangkat / tautan yang tersimpan lokal) dipindahkan ke database pusat.
+   PDF lama TIDAK ikut dipindahkan: barisnya tetap ada dengan status "tautan belum ada"
+   sampai petugas mengisi tautan baru. File lokalnya tidak dihapus. */
+async function pindahkanEbookLama(){
+  if(!SB_ENABLED || !DB.ebooksLama.length) return;
+  const rows = DB.ebooksLama.map(e=>{
+    const cek = e.mode === 'link' ? ebookCekTautan(e.url) : { ok:false };
+    return { legacyId:e.id, judul:(e.judul||'').trim().toUpperCase() || '(TANPA JUDUL)',
+      pengarang:e.pengarang||'', kategori:e.kategori||'', url:cek.ok ? cek.url : '', dibaca:e.dibaca||0 };
+  });
+  const tanpa = rows.filter(r=>!r.url).length;
+  try{
+    await LibraryAPI.importEbooks(rows);
+    DB.ebooks = await LibraryAPI.pullEbooks();
+    DB.ebooksLama = [];
+    saveDB(); renderEbooks();
+    toast('✅ ' + rows.length + ' e-book lama dipindahkan' + (tanpa ? ' · ' + tanpa + ' perlu diisi tautannya' : ''));
+  }catch(e){ toast('❌ '+LibraryAPI.msg(e)); }
+}
+
 function renderEbooks(){
-  const q = ($('eSearch').value||'').toLowerCase();
-  const rows = DB.ebooks.filter(e=>!q || e.judul.toLowerCase().includes(q) || (e.pengarang||'').toLowerCase().includes(q));
+  const q = ($('eSearch').value||'').toLowerCase().trim();
+  const rows = DB.ebooks.filter(e=>!q || [e.judul, e.pengarang, e.kategori].some(v=>(v||'').toLowerCase().includes(q)));
   $('eCount').textContent = rows.length + ' e-book';
-  $('ebookList').innerHTML = rows.map(e=>`
+  ebookRenderKategori();
+
+  const lama = DB.ebooksLama.length, box = $('eLamaBox');
+  box.style.display = lama ? '' : 'none';
+  box.innerHTML = lama ? `<b>📦 Ada ${lama} e-book lama yang hanya tersimpan di perangkat ini.</b><br>
+    <span style="font-size:13px">Pindahkan ke database agar tidak hilang dan terlihat di semua perangkat. File PDF lama tidak ikut
+    dipindahkan — nanti unggah ke Google Drive, lalu isi tautannya lewat tombol Ubah.</span><br>
+    <button class="btn small green" style="margin-top:6px" onclick="pindahkanEbookLama()">📦 Pindahkan ${lama} e-book lama</button>` : '';
+
+  $('ebookList').innerHTML = rows.map(e=>{
+    const cek = ebookCekTautan(e.url);
+    const baca = cek.ok
+      ? `<a class="btn small green" style="text-decoration:none;display:inline-block" href="${esc(cek.url)}" target="_blank"
+            rel="noopener noreferrer" onclick="ebookDibaca('${e.id}')">📖 Baca Digital</a>`
+      : `<button class="btn small" disabled title="Tautan belum ada atau tidak valid. Klik Ubah untuk memperbaikinya.">📖 Baca Digital</button>`;
+    return `
     <div class="card" style="margin-bottom:0; padding:14px">
-      <div style="font-size:34px">${e.mode==='link'?'🔗':'📕'}</div>
+      <div style="font-size:34px">${cek.ok?'🔗':'⚠️'}</div>
       <h3 style="margin:4px 0">${esc(e.judul)}</h3>
       <p style="font-size:13px; color:#4a6bb5; font-weight:700">${esc(e.pengarang)||'-'} ${e.kategori?'· '+esc(e.kategori):''}</p>
-      <p style="font-size:12px; margin:4px 0">${e.mode==='link'?'Tautan online':'File PDF · '+(e.size||'')} · 👀 dibaca ${e.dibaca||0}x</p>
-      <button class="btn small" onclick="openEbook('${e.id}')">📖 Baca</button>
-      <button class="btn small red" onclick="delEbook('${e.id}')">🗑️</button>
-    </div>`).join('') || '<p style="padding:14px">Rak masih kosong. Tambahkan e-book pertama! ⬆️</p>';
+      <p style="font-size:12px; margin:4px 0">${cek.ok
+        ? esc(cek.host) + ' · 👀 dibaca <span id="eRead-'+e.id+'">'+(e.dibaca||0)+'</span>x'
+        : '<span class="badge b-orange">tautan belum ada / tidak valid</span><br>Klik Ubah untuk mengisi tautannya.'}</p>
+      ${baca}
+      <button class="btn small" onclick="editEbook('${e.id}')">✏️ Ubah</button>
+      <button class="btn small red" onclick="delEbook('${e.id}')" aria-label="Hapus e-book">🗑️</button>
+    </div>`;
+  }).join('') || '<p style="padding:14px">Rak masih kosong. Tambahkan e-book pertama! ⬆️</p>';
 }
 
 /* =================== KARYA SISWA =================== */
@@ -3988,7 +4073,7 @@ function bookRows(){ return DB.books.map((b,i)=>{
     KONDISI:b.kondisi||'', STATUS:b.statusCopy||'', TERSEDIA:b.tersedia }; }); }
 function loanRows(){ return DB.loans.map(l=>{ const m=DB.members.find(x=>x.id===l.memberId)||{}; return { STUDENT_ID:l.memberId||'', BARCODE_ID:m.barcodeId||'', NAMA:l.nama, KELAS:l.kelas, 'JENIS KELAMIN':l.jk||'', 'NO ANGGOTA':l.noAnggota, 'KODE BUKU':l.kode, 'JUDUL BUKU':l.judul, PINJAM:l.pinjam, 'BATAS KEMBALI':l.batas, DIKEMBALIKAN:l.kembali||'', STATUS:loanStatus(l).replace('-AKTIF',''), SANKSI:l.sanksi||'-' }; }); }
 function karyaRows(){ return DB.karya.map(k=>({ TANGGAL:k.tgl, NAMA:k.nama, KELAS:k.kelas||'', JENIS:k.jenis, 'JUDUL KARYA':k.judul, ISI:k.isi||'', SUKA:k.suka||0 })); }
-function ebookRows(){ return DB.ebooks.map(e=>({ JUDUL:e.judul, PENGARANG:e.pengarang||'', KATEGORI:e.kategori||'', SUMBER:e.mode==='link'?(e.url||''):('File: '+(e.fileName||'')), 'DIBACA (x)':e.dibaca||0 })); }
+function ebookRows(){ return DB.ebooks.map(e=>({ JUDUL:e.judul, PENGARANG:e.pengarang||'', KATEGORI:e.kategori||'', TAUTAN:e.url||'', 'DIBACA (x)':e.dibaca||0 })); }
 function visitRows(){ return DB.visits.map(v=>{ const m=DB.members.find(x=>x.id===v.memberId)||{}; return { STUDENT_ID:v.memberId||'', BARCODE_ID:m.barcodeId||'', NAMA:v.nama, KELAS:v.kelas, TIPE:v.tipe||'', 'NO ANGGOTA':m.noAnggota||'', TANGGAL:v.tgl, JAM:v.jam||'-', AKTIVITAS:v.aktivitas, 'JUDUL BUKU':v.buku||'', KETERANGAN:v.ket||'' }; }); }
 function attendanceRows(){ return DB.attendance.map(a=>({ STUDENT_ID:a.studentId, BARCODE_ID:a.barcodeId||'', NAMA:a.nama, KELAS:a.kelas, ROMBEL:a.rombel||'', TANGGAL:a.tgl, JAM:a.jam||'', STATUS:a.status, KETERANGAN:a.ket||'' })); }
 function exportAll(){
@@ -4406,9 +4491,10 @@ async function sbRealtimeRefresh(){
 
 async function sbLoadAll(){
   try{
-    const [members, books, loans, titles] = await Promise.all([
-      LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans(), LibraryAPI.pullTitles() ]);
-    DB.members = members; DB.books = books; DB.loans = loans; DB.titles = titles;
+    const [members, books, loans, titles, ebooks] = await Promise.all([
+      LibraryAPI.pullMembers(), LibraryAPI.pullBooks(), LibraryAPI.pullLoans(), LibraryAPI.pullTitles(),
+      LibraryAPI.pullEbooks() ]);
+    DB.members = members; DB.books = books; DB.loans = loans; DB.titles = titles; DB.ebooks = ebooks;
     saveDB(); renderAll();
     scMuatSesiKelas();      // sesi "Pinjam ke Kelas" yang masih berjalan
     if(!window._sbSub){ window._sbSub = LibraryAPI.subscribe(sbRealtimeRefresh); }

@@ -70,6 +70,13 @@
       tahun: b.tahun || null, kategori: b.kategori || null, jumlah: b.jumlah, tersedia: b.tersedia,
       legacy_id: (b.id && /^B\d/.test(b.id)) ? b.id : null };
   }
+  function rowToEbook(r) {
+    return { id: r.id, judul: r.judul, pengarang: r.pengarang || '', kategori: r.kategori || '',
+      url: r.url || '', dibaca: r.dibaca || 0 };
+  }
+  function ebookToRow(e) {
+    return { judul: e.judul, pengarang: e.pengarang || null, kategori: e.kategori || null, url: e.url || null };
+  }
   function rowToSesi(r) {
     if (!r) return null;
     return { id: r.id, kelas: r.kelas, kegiatan: r.kegiatan || '', memberId: r.member_id || '',
@@ -104,6 +111,7 @@
     if (/duplicate key/.test(m) && /barcode/.test(m)) return 'Barcode ID sudah dipakai anggota lain.';
     if (/duplicate key/.test(m) && /kode/.test(m)) return 'Kode buku sudah ada di katalog.';
     if (/books_satu_eksemplar_check/.test(m)) return 'Satu baris buku = satu eksemplar fisik. Pakai "Jumlah Eksemplar" agar sistem membuatkan beberapa eksemplar.';
+    if (/ebooks_url_check/.test(m)) return 'Tautan e-book tidak valid. Gunakan alamat yang diawali https://';
     if (/KODE_TIDAK_BOLEH_DIUBAH/.test(m)) return 'Kode eksemplar tidak dapat diubah — label QR-nya sudah tertempel di buku.';
     if (/JUDUL_WAJIB_DIISI/.test(m)) return 'Judul buku wajib diisi.';
     if (/JUDUL_TIDAK_DITEMUKAN/.test(m)) return 'Judul tidak ditemukan — muat ulang halaman.';
@@ -229,6 +237,21 @@
       for (var i = 0; i < ids.length; i += 100) {
         throwIf(await sb.from('books').delete().in('id', ids.slice(i, i + 100)));
       }
+    },
+
+    // ---------- e-book: METADATA + tautan eksternal saja (tanpa file, tanpa Storage) ----------
+    async pullEbooks() { return (await this._pullAll('ebooks', 'created_at', false)).map(rowToEbook); },
+    async addEbook(e) { return rowToEbook(throwIf(await sb.from('ebooks').insert(ebookToRow(e)).select().single())); },
+    async updateEbook(id, e) { return rowToEbook(throwIf(await sb.from('ebooks').update(ebookToRow(e)).eq('id', id).select().single())); },
+    // Hanya baris metadata. File di Google Drive/website sumber tidak tersentuh.
+    async deleteEbook(id) { throwIf(await sb.from('ebooks').delete().eq('id', id)); },
+    async addEbookRead(id, n) { throwIf(await sb.from('ebooks').update({ dibaca: n }).eq('id', id)); },
+    // Pemindahan e-book lama dari penyimpanan browser; legacy_id unik => aman diulang.
+    async importEbooks(list) {
+      if (!list.length) return;
+      throwIf(await sb.from('ebooks').upsert(list.map(function (e) {
+        var r = ebookToRow(e); r.legacy_id = e.legacyId; r.dibaca = e.dibaca || 0; return r;
+      }), { onConflict: 'legacy_id', ignoreDuplicates: true }));
     },
 
     // ---------- titles (bibliografi) ----------
