@@ -1046,23 +1046,13 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 </div>
 
 <!-- ============ PUBLIC E-BOOK ============ -->
-<!-- DATA DINAMIS NANTI DARI SUPABASE -->
-<!-- TODO: CLAUDE - PUBLIC DATA INTEGRATION -->
 <div class="page" id="page-pub-ebook">
   <div class="card">
     <h2>📱 Rak E-Book Digital</h2>
     <p class="subtitle">Baca buku cerita dan bahan bacaan digital langsung dari perangkat Anda.</p>
   </div>
   <div class="grid3" id="pubEbookGrid">
-    <div class="pub-book-card">
-      <div class="book-cover">📱</div>
-      <div class="book-details">
-        <span class="badge b-blue">E-Book PDF</span>
-        <h4>DONGENG NUSANTARA DIGITAL</h4>
-        <p>Kategori: Dongeng Anak</p>
-        <button class="btn small green" style="margin-top:6px" onclick="toast('📖 Membuka preview E-Book...')">📖 Baca Sekarang</button>
-      </div>
-    </div>
+    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book belum tersedia.</div>
   </div>
 </div>
 
@@ -5156,7 +5146,7 @@ function renderPubHomePreview(){
   const g=$('pubBookPreviewGrid'); if(g) g.innerHTML=PUB.books.slice(0,6).map(pubBookCard).join('') || '';
   const k=$('pubKaryaPreviewGrid'); if(k) k.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
   const kf=$('pubKaryaFullGrid'); if(kf) kf.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
-  const eb=$('pubEbookGrid'); if(eb) eb.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book segera hadir.</div>';
+  const eb=$('pubEbookGrid'); if(eb) eb.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book belum tersedia.</div>';
   // Pasang event listeners search+filter (sekali saja, flag agar tidak duplikat)
   const si=$('pubBookSearchInput');
   if(si && !si._ev){ si._ev=1; si.addEventListener('input', ()=>{ PUB_LIMIT=60; renderPubCatalog(); }); }
