@@ -111,6 +111,7 @@
     if (/duplicate key/.test(m) && /barcode/.test(m)) return 'Barcode ID sudah dipakai anggota lain.';
     if (/duplicate key/.test(m) && /kode/.test(m)) return 'Kode buku sudah ada di katalog.';
     if (/books_satu_eksemplar_check/.test(m)) return 'Satu baris buku = satu eksemplar fisik. Pakai "Jumlah Eksemplar" agar sistem membuatkan beberapa eksemplar.';
+    if (/JENIS_TIDAK_DIKENAL/.test(m)) return 'Jenis laporan tidak dikenal — muat ulang halaman.';
     if (/ebooks_url_check/.test(m)) return 'Tautan e-book tidak valid. Gunakan alamat yang diawali https://';
     if (/KODE_TIDAK_BOLEH_DIUBAH/.test(m)) return 'Kode eksemplar tidak dapat diubah — label QR-nya sudah tertempel di buku.';
     if (/JUDUL_WAJIB_DIISI/.test(m)) return 'Judul buku wajib diisi.';
@@ -369,6 +370,14 @@
     // days = 0 berarti seluruh waktu.
     coverUrl: coverUrl,
 
+    // Rincian di balik kartu dashboard: satu halaman per panggilan (maks 50 baris), difilter & dihitung di server.
+    async dashboardDetail(jenis, cari, limit, offset) {
+      return throwIf(await sb.rpc('dashboard_detail', { p_jenis: jenis, p_cari: cari || null, p_limit: limit, p_offset: offset }));
+    },
+    async aktivitasRanking(jenis, days) {
+      return throwIf(await sb.rpc('aktivitas_ranking', { p_jenis: jenis, p_days: days, p_limit: 10 }));
+    },
+    async riwayatSiswa(memberId) { return throwIf(await sb.rpc('riwayat_siswa', { p_member_id: memberId, p_limit: 20 })); },
     async dashboard(days) { return throwIf(await sb.rpc('dashboard_stats', { p_days: days === undefined ? 30 : days })); },
 
     // Kunjungan: satu member maksimal satu baris per tanggal (upsert di dalam RPC),
