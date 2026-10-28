@@ -4571,7 +4571,8 @@ function saveSettings(){
 const KK = { data:null, sibuk:false };
 function tahunAjaranAktif(){
   let maks = '';
-  DB.members.forEach(m=>{ if(/^\d{4}\/\d{4}$/.test(m.tahunAjaran||'') && m.tahunAjaran > maks) maks = m.tahunAjaran; });
+  // hanya anggota AKTIF: tahun ajaran pada lulusan adalah catatan "tahun lulus", bukan tahun berjalan
+  DB.members.forEach(m=>{ if((m.lifecycle||'AKTIF')==='AKTIF' && /^\d{4}\/\d{4}$/.test(m.tahunAjaran||'') && m.tahunAjaran > maks) maks = m.tahunAjaran; });
   return maks;
 }
 function kkSaran(){

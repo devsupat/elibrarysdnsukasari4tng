@@ -72,7 +72,9 @@ begin
   end if;
   v_prev := (v_a - 1)::text || '/' || v_a::text;      -- tahun ajaran terakhir lulusan = "tahun lulus"
 
-  select max(tahun_ajaran) into v_maks from public.members where tahun_ajaran ~ '^\d{4}/\d{4}$';
+  -- hanya anggota AKTIF yang menentukan tahun ajaran aktif; stempel tahun lulus lulusan = catatan sejarah
+  select max(tahun_ajaran) into v_maks from public.members
+   where tahun_ajaran ~ '^\d{4}/\d{4}$' and coalesce(lifecycle, 'AKTIF') = 'AKTIF';
   if v_maks is not null then
     v_maks_a := split_part(v_maks, '/', 1)::int;
     if v_a < v_maks_a     then raise exception 'TAHUN_AJARAN_LEBIH_LAMA' using errcode = 'P0001'; end if;
