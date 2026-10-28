@@ -1276,6 +1276,8 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   <div class="card alt">
     <h2>👧 Daftar Pengguna Perpustakaan <span id="mCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
+    <div style="margin-bottom:8px"><button class="btn small yellow" id="noGenBtn" onclick="noAnggotaBuka()">🔢 Generate Nomor Anggota</button>
+      <small style="color:#4a6bb5"> untuk siswa AKTIF yang belum punya nomor</small></div>
     <div class="search-bar">
       <input id="mSearch" placeholder="🔍 Cari nama, nomor anggota, atau barcode...">
       <select id="mFilterKelas"><option value="">Semua Kelas</option></select>
@@ -1922,6 +1924,15 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   </div>
 </div>
 
+<!-- Modal generate nomor anggota -->
+<div class="modal-bg" id="noModal">
+  <div class="modal">
+    <span class="close-x" onclick="noAnggotaTutup()">✖</span>
+    <h2 class="doodle-font" style="font-size:24px; margin-bottom:10px">🔢 Generate Nomor Anggota</h2>
+    <div id="noBody"></div>
+  </div>
+</div>
+
 <!-- Modal struk preview -->
 <div class="modal-bg" id="strukModal">
   <div class="modal">
@@ -2325,6 +2336,85 @@ function printCard(id){
     w.document.close();
   }, 80);
 }
+/* =================== NOMOR ANGGOTA (dibuat di database: generate_no_anggota) ===================
+   Format SL-00001, berurutan, unik oleh database. Memberi nomor = menjadi Anggota (aturan lama: status
+   mengikuti ada/tidaknya nomor). Hanya siswa AKTIF tanpa nomor; nama/kelas/NISN/kartu tidak disentuh. */
+let noSibuk = false;
+function noAnggotaLayak(m){
+  return (!m.noAnggota || m.noAnggota === '-') && (m.tipe||'Siswa') === 'Siswa' && (m.lifecycle||'AKTIF') === 'AKTIF';
+}
+function noAnggotaTutup(){ if(noSibuk) return; $('noModal').classList.remove('show'); }
+function noAnggotaTampil(html){ $('noBody').innerHTML = html; $('noModal').classList.add('show'); }
+async function noAnggotaMuatUlang(){
+  DB.members = await LibraryAPI.pullMembers();   // angka di layar = isi database
+  saveDB(); renderMembers(); renderDashboard();
+}
+function noAlasan(h){
+  return ({ BUKAN_SISWA:'bukan siswa (tamu/guru)', BUKAN_AKTIF:'siswa tidak berstatus AKTIF', TIDAK_DITEMUKAN:'data tidak ditemukan',
+    GAGAL_KONFLIK:'nomor bentrok berulang, coba lagi', SUDAH_PUNYA:'sudah punya nomor' })[h] || h;
+}
+async function noAnggotaSatu(id){
+  if(noSibuk) return;
+  if(!SB_ENABLED || !SB_USER){ toast('⚠️ Masuk sebagai petugas dulu.'); return; }
+  const m = DB.members.find(x=>x.id===id); if(!m) return;
+  if(!confirm('Buat nomor anggota untuk '+m.nama+'? Status keanggotaannya akan menjadi Anggota.')) return;
+  noSibuk = true;
+  try{
+    const d = await LibraryAPI.generateNoAnggota([id], true);
+    const r = d.rows[0] || {};
+    await noAnggotaMuatUlang();
+    if(r.hasil === 'BERHASIL') toast('✅ '+m.nama+' — nomor anggota '+r.no_anggota);
+    else if(r.hasil === 'SUDAH_PUNYA') toast('ℹ️ '+m.nama+' sudah punya nomor '+r.no_anggota+' — tidak diubah.');
+    else toast('⚠️ '+m.nama+' tidak diproses: '+noAlasan(r.hasil));
+  }catch(e){ toast('❌ Nomor belum dibuat: '+LibraryAPI.msg(e)); }
+  finally{ noSibuk = false; }
+}
+async function noAnggotaBuka(){
+  if(!SB_ENABLED || !SB_USER){ toast('⚠️ Masuk sebagai petugas dulu.'); return; }
+  if(noSibuk) return;
+  noAnggotaTampil('<div class="dd-state">⏳ Memeriksa siapa yang bisa diproses…</div>');
+  try{
+    const d = await LibraryAPI.generateNoAnggota(null, false);
+    const rows = d.rows || [], tanpaKartu = rows.filter(r=>!r.ada_kartu).length;
+    if(!rows.length){
+      noAnggotaTampil('<p>✅ Tidak ada siswa AKTIF yang belum punya nomor anggota.</p><div style="text-align:center"><button class="btn" onclick="noAnggotaTutup()">Tutup</button></div>');
+      return;
+    }
+    noAnggotaTampil(`<p><b>${rows.length} siswa AKTIF</b> belum punya nomor anggota dan akan diproses.</p>
+      <div class="hint">Nomor berformat <b>SL-00001</b>, berurutan. Setelah mendapat nomor, status mereka menjadi <b>Anggota</b>.
+        Yang <b>tidak</b> diproses: ${d.dilewati} pengguna (sudah punya nomor, tamu, atau berstatus LULUS/PINDAH/NONAKTIF).
+        Nomor yang sudah ada, NISN, dan kode kartu tidak berubah.</div>
+      ${tanpaKartu ? `<div class="hint">⚠️ ${tanpaKartu} di antaranya belum punya ID Barcode Kartu (kartu belum bisa dipindai).</div>` : ''}
+      <div style="max-height:220px;overflow:auto;border:2px dashed var(--line);border-radius:10px;padding:6px 10px;margin:8px 0;font-size:13px">
+        ${rows.map(r=>`<div>${esc(r.nama)} <small style="color:#4a6bb5">${esc(r.kelas||'-')}${r.ada_kartu?'':' · tanpa kartu'}</small></div>`).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <button class="btn green" id="noGoBtn" onclick="noAnggotaJalankan()">✅ Buat ${rows.length} Nomor Anggota</button>
+        <button class="btn ghost" onclick="noAnggotaTutup()">Batal</button></div>`);
+  }catch(e){
+    noAnggotaTampil(`<div class="dd-state err">❌ ${esc(LibraryAPI.msg(e))}</div><div style="text-align:center"><button class="btn" onclick="noAnggotaBuka()">Coba lagi</button> <button class="btn ghost" onclick="noAnggotaTutup()">Tutup</button></div>`);
+  }
+}
+async function noAnggotaJalankan(){
+  if(noSibuk) return;
+  noSibuk = true; const go = $('noGoBtn'); if(go){ go.disabled = true; go.textContent = '⏳ Memproses…'; }
+  try{
+    const d = await LibraryAPI.generateNoAnggota(null, true);
+    await noAnggotaMuatUlang();
+    const bermasalah = (d.rows||[]).filter(r=>r.hasil !== 'BERHASIL');
+    noSibuk = false;
+    noAnggotaTampil(`<p>${d.gagal ? '⚠️' : '✅'} Selesai.</p>
+      <div class="hint"><b>Berhasil:</b> ${d.berhasil} · <b>Dilewati:</b> ${d.dilewati} · <b>Gagal:</b> ${d.gagal}</div>
+      ${bermasalah.length ? '<div style="font-size:13px">'+bermasalah.map(r=>esc(r.nama||r.id)+' — '+esc(noAlasan(r.hasil))).join('<br>')+'</div>' : ''}
+      <div style="text-align:center;margin-top:10px"><button class="btn" onclick="noAnggotaTutup()">Tutup</button></div>`);
+  }catch(e){
+    noSibuk = false;
+    // jaringan putus: hasil tidak diketahui — jangan klaim sukses, minta periksa ulang
+    noAnggotaTampil(`<div class="dd-state err">❌ ${esc(LibraryAPI.msg(e))}<br><small>Hasil belum pasti. Tekan "Periksa ulang": yang sudah bernomor otomatis dilewati, tidak ada nomor ganda.</small></div>
+      <div style="text-align:center"><button class="btn" onclick="noAnggotaBuka()">Periksa ulang</button> <button class="btn ghost" onclick="noAnggotaTutup()">Tutup</button></div>`);
+    try{ await noAnggotaMuatUlang(); }catch(_){}
+  }
+}
+
 function renderMembers(){
   const q = $('mSearch').value.toLowerCase();
   const fk = $('mFilterKelas').value, fs = $('mFilterStatus').value, fl = $('mFilterLife').value;
@@ -2341,7 +2431,8 @@ function renderMembers(){
     <td><span class="badge ${m.status==='Anggota'?'b-green':'b-gray'}">${m.status}</span></td>
     <td><span class="badge ${lifeBadge[m.lifecycle||'AKTIF']||'b-gray'}">${esc(m.lifecycle||'AKTIF')}</span></td>
     <td><button class="icon-btn" onclick="printCard('${m.id}')" title="Cetak Kartu + Barcode">🖨️</button>
-        <button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button></td></tr>`).join('')
+        <button class="icon-btn" onclick="editMember('${m.id}')" title="Ubah">✏️</button>
+        ${noAnggotaLayak(m) ? `<button class="icon-btn" onclick="noAnggotaSatu('${m.id}')" title="Generate nomor anggota (status menjadi Anggota)">🔢</button>` : ''}</td></tr>`).join('')
     || '<tr><td colspan="10" style="text-align:center;padding:20px">Belum ada data. Tambahkan di formulir atas ⬆️</td></tr>';
   $('mMoreBtn').style.display = rows.length > memberLimit ? '' : 'none';
   // kelas filter options

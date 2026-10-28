@@ -141,6 +141,7 @@
     if (/EKSEMPLAR_TIDAK_DITEMUKAN/.test(m)) return 'Eksemplar tidak ditemukan.';
     if (/SESI_TIDAK_AKTIF/.test(m)) return 'Sesi kelas sudah ditutup. Buka sesi baru dulu.';
     if (/KELAS_WAJIB_DIISI/.test(m)) return 'Kelas wajib diisi untuk peminjaman ke kelas.';
+    if (/members_no_anggota_sl_key/.test(m)) return 'Nomor anggota bentrok dengan nomor lain. Ulangi sebentar lagi.';
     if (/karya_ada_isi/.test(m)) return 'Karya harus punya isi tulisan atau foto.';
     if (/karya_(judul|nama|jenis|isi)_check/.test(m)) return 'Data karya tidak valid (judul/nama kosong atau terlalu panjang, jenis salah, atau isi lebih dari 20.000 huruf).';
     if (/row-level security|permission denied/.test(m)) return 'Akses ditolak — login sebagai petugas dulu.';
@@ -235,6 +236,13 @@
     // p_hapus=false: hanya memeriksa kelayakan; true: menghapus bila AMAN (LULUS & tanpa riwayat apa pun).
     async hapusAnggotaLulus(id, hapus) {
       return throwIf(await sb.rpc('hapus_anggota_lulus', { p_member_id: id, p_hapus: !!hapus }));
+    },
+    // Nomor anggota dibuat di database (sequence + unique index), bukan di browser.
+    // ids null = semua siswa AKTIF yang belum bernomor; eksekusi=false = pratinjau tanpa menulis.
+    async generateNoAnggota(ids, eksekusi) {
+      var d = throwIf(await sb.rpc('generate_no_anggota', { p_member_ids: ids && ids.length ? ids : null, p_eksekusi: !!eksekusi }));
+      if (!d || !Array.isArray(d.rows)) throw new Error('Jawaban server tidak lengkap.');
+      return d;
     },
     async deleteMember(id) { throwIf(await sb.from('members').delete().eq('id', id)); },
 
