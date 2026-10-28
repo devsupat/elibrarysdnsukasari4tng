@@ -882,7 +882,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
     <div class="squiggle"></div>
     <div class="grid3" id="pubKaryaPreviewGrid">
-    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>
+    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">⏳ Memuat karya…</div>
     </div>
   </div>
 
@@ -990,16 +990,17 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
   <div class="card">
     <h2>🎨 Galeri Karya Siswa SDN Sukasari 4</h2>
     <p class="subtitle">Kumpulan kreativitas, cerita, puisi, pantun, dan lukisan siswa yang telah dipublikasikan.</p>
-    <div class="pill-tabs">
-      <button class="btn small">Semua Karya</button>
-      <button class="btn small ghost">Cerita / Cerpen</button>
-      <button class="btn small ghost">Puisi &amp; Pantun</button>
-      <button class="btn small ghost">Gambar &amp; Komik</button>
+    <div class="pill-tabs" id="pubKaryaTabs">
+      <button class="btn small" data-grup="semua" onclick="pubKaryaFilter('semua')">Semua Karya</button>
+      <button class="btn small ghost" data-grup="cerita" onclick="pubKaryaFilter('cerita')">Cerita / Cerpen</button>
+      <button class="btn small ghost" data-grup="puisi" onclick="pubKaryaFilter('puisi')">Puisi &amp; Pantun</button>
+      <button class="btn small ghost" data-grup="gambar" onclick="pubKaryaFilter('gambar')">Gambar &amp; Komik</button>
     </div>
   </div>
   <div class="grid3" id="pubKaryaFullGrid">
-    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>
+    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">⏳ Memuat karya…</div>
   </div>
+  <div style="text-align:center;margin:14px 0"><button class="btn" id="pubKaryaMore" style="display:none" onclick="pubKaryaMuat(false)">Muat karya lainnya</button></div>
 </div>
 
 <!-- ============ PUBLIC E-BOOK ============ -->
@@ -1688,7 +1689,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
 <!-- ============ KARYA ============ -->
 <div class="page" id="page-karya">
   <div class="card">
-    <h2>✍️ Unggah Hasil Karya</h2>
+    <h2 id="kFormJudul">✍️ Unggah Hasil Karya</h2>
     <p class="subtitle">Tulisan, cerita, puisi, pantun, atau gambar karya siswa &amp; guru — tampil di galeri untuk dibaca bersama!</p>
     <div class="frow">
       <div><label>Nama Pembuat Karya *</label>
@@ -1702,13 +1703,20 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     <label>Isi Tulisan / Cerita</label>
     <textarea id="kIsi" rows="7" placeholder="Tulis atau tempel cerita di sini..."></textarea>
     <label>Foto Karya (opsional — untuk gambar / tulisan tangan)</label>
-    <input type="file" id="kFile" accept="image/*">
-    <button class="btn green" onclick="saveKarya()">🎨 Pajang di Galeri</button>
+    <input type="file" id="kFile" accept="image/jpeg,image/png,image/webp">
+    <div id="kFotoLama" style="display:none;margin-top:6px"><label style="font-weight:700"><input type="checkbox" id="kHapusFoto"> Buang foto yang sekarang (kosongkan jika foto tetap dipakai)</label></div>
+    <div class="hint">Karya baru masuk sebagai <b>Draft</b> dan belum terlihat publik. Periksa isinya, lalu tekan <b>Terbitkan</b>.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn" id="kBtnDraft" onclick="saveKarya('draft')">💾 Simpan sebagai Draft</button>
+      <button class="btn green" id="kBtnTerbit" onclick="saveKarya('terbit')">🌐 Simpan &amp; Terbitkan</button>
+      <button class="btn ghost" id="kBtnBatal" style="display:none" onclick="karyaResetForm()">Batal ubah</button>
+    </div>
   </div>
 
   <div class="card alt">
-    <h2>🖼️ Galeri Karya <span id="kCount" class="badge b-blue"></span></h2>
+    <h2>🖼️ Kelola Karya <span id="kCount" class="badge b-blue"></span></h2>
     <div class="squiggle"></div>
+    <div id="karyaLamaBox" class="hint" style="display:none"></div>
     <div class="search-bar">
       <input id="kSearch" placeholder="🔍 Cari judul / nama...">
       <select id="kFilterJenis"><option value="">Semua Jenis</option><option>Cerita / Cerpen</option><option>Puisi</option><option>Pantun</option><option>Dongeng</option><option>Gambar / Komik</option><option>Laporan Membaca</option><option>Lainnya</option></select>
@@ -4260,91 +4268,255 @@ function renderEbooks(){
   }).join('') || '<p style="padding:14px">Rak masih kosong. Tambahkan e-book pertama! ⬆️</p>';
 }
 
-/* =================== KARYA SISWA =================== */
-function saveKarya(){
+/* =================== KARYA SISWA ===================
+   Sumber data = tabel Supabase `karya` (lihat task-13-karya-siswa.sql). DB.karya (localStorage) sengaja
+   TIDAK disentuh lagi: itu karya lama per-browser, hanya dibaca untuk dipindahkan lewat tombol di bawah. */
+let KARYA_SRV = [], KARYA_ERR = '', kEditId = '', kSibuk = false;
+const K_STATUS = { DRAFT:['b-orange','📝 Draft — belum tampil'], PUBLISHED:['b-green','🌐 Tampil di publik'], HIDDEN:['b-gray','🙈 Disembunyikan'] };
+const K_ICON = {'Cerita / Cerpen':'📖','Puisi':'🌸','Pantun':'🎭','Dongeng':'🏰','Gambar / Komik':'🎨','Laporan Membaca':'📝','Lainnya':'⭐'};
+
+async function karyaMuat(){
+  if(!SB_ENABLED || !SB_USER){ KARYA_SRV = []; renderKarya(); renderKaryaLama(); return; }
+  try{ KARYA_SRV = await LibraryAPI.pullKarya(); KARYA_ERR = ''; }
+  catch(e){ KARYA_ERR = LibraryAPI.msg(e); }
+  renderKarya(); renderKaryaLama();
+}
+function karyaKeGaleriPublik(){ if(typeof pubKaryaSegarkan === 'function') pubKaryaSegarkan(); }
+
+function karyaResetForm(){
+  kEditId = '';
+  ['kId','kNama','kMemberId','kJudul','kIsi'].forEach(i=>{ if($(i)) $(i).value=''; });
+  $('kFile').value=''; $('kHapusFoto').checked = false; $('kFotoLama').style.display='none';
+  $('kFormJudul').textContent = '✍️ Unggah Hasil Karya';
+  $('kBtnDraft').textContent = '💾 Simpan sebagai Draft';
+  $('kBtnBatal').style.display = 'none';
+}
+function editKarya(id){
+  const k = KARYA_SRV.find(x=>x.id===id); if(!k) return;
+  kEditId = id;
+  $('kNama').value = k.nama; $('kMemberId').value = ''; $('kJudul').value = k.judul;
+  $('kJenis').value = k.jenis; $('kIsi').value = k.isi; $('kFile').value=''; $('kHapusFoto').checked = false;
+  $('kFotoLama').style.display = k.fotoUrl ? '' : 'none';
+  $('kFormJudul').textContent = '✏️ Ubah Karya';
+  $('kBtnDraft').textContent = '💾 Simpan Perubahan';
+  $('kBtnBatal').style.display = '';
+  $('kFormJudul').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* mode: 'draft' (karya baru = DRAFT; saat mengubah, status tidak berubah) atau 'terbit' (PUBLISHED). */
+async function saveKarya(mode){
+  if(kSibuk) return;
+  if(!SB_ENABLED || !SB_USER){ toast('⚠️ Masuk sebagai petugas dulu — karya disimpan di server.'); return; }
   const namaInput = $('kNama').value.trim().toUpperCase();
   const judul = $('kJudul').value.trim().toUpperCase();
   if(!namaInput || !judul){ toast('⚠️ Nama dan judul karya wajib diisi!'); return; }
   const isi = $('kIsi').value.trim();
   const f = $('kFile').files[0];
-  if(!isi && !f){ toast('⚠️ Isi tulisan atau unggah foto karyanya'); return; }
+  const lama = kEditId ? KARYA_SRV.find(x=>x.id===kEditId) : null;
+  const hapusFoto = !!(lama && $('kHapusFoto').checked);
+  const adaFotoLama = !!(lama && lama.fotoPath && !hapusFoto);
+  if(!isi && !f && !adaFotoLama){ toast('⚠️ Isi tulisan atau unggah foto karyanya'); return; }
   const mid = $('kMemberId').value;
   const m = mid ? DB.members.find(x=>x.id===mid) : DB.members.find(x=>x.nama===namaInput.split(' (')[0]);
   const nama = m ? m.nama : namaInput.split(' (')[0];
-  const kelas = m ? (m.kelas || m.tipe || '') : '';
-  const k = { id:'K'+String(DB.seq.k++).padStart(4,'0'), nama, kelas, jenis:$('kJenis').value,
-    judul, isi, tgl:todayStr(), suka:0 };
-  const finish = ()=>{
-    DB.karya.unshift(k); saveDB();
-    ['kNama','kMemberId','kJudul','kIsi'].forEach(i=>$(i).value=''); $('kFile').value='';
-    renderKarya(); toast('🎉 Karya "'+judul+'" terpajang di galeri!');
-  };
-  if(f){
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      const img = new Image();
-      img.onload = async ()=>{
-        const c = document.createElement('canvas');
-        const s = Math.min(1, 900/Math.max(img.width, img.height));
-        c.width = img.width*s; c.height = img.height*s;
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        k.imgKey = 'supat-karya-'+k.id;
-        await fileSet(k.imgKey, c.toDataURL('image/jpeg', .82));
-        finish();
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(f);
-  } else finish();
+  const kelas = m ? (m.kelas || m.tipe || '') : (lama ? lama.kelas : '');
+  const data = { judul, jenis:$('kJenis').value, isi, nama, kelas };
+  if(mode === 'terbit') data.status = 'PUBLISHED'; else if(!lama) data.status = 'DRAFT';
+
+  kSibuk = true; ['kBtnDraft','kBtnTerbit'].forEach(i=>$(i).disabled = true);
+  try{
+    const blob = f ? await optimizeCover(f) : null;
+    let hasil;
+    if(lama) hasil = await LibraryAPI.updateKarya(lama.id, data, lama.fotoPath, blob, hapusFoto);
+    else hasil = await LibraryAPI.createKarya(data, blob);
+    KARYA_SRV = lama ? KARYA_SRV.map(x=>x.id===hasil.id ? hasil : x) : [hasil].concat(KARYA_SRV);
+    karyaResetForm(); renderKarya(); karyaKeGaleriPublik();
+    toast(hasil.status === 'PUBLISHED' ? '🎉 Karya "'+judul+'" tampil di galeri publik!' : '✅ Karya "'+judul+'" tersimpan sebagai '+(hasil.status==='DRAFT'?'draft':'tersembunyi')+'.');
+  }catch(e){ toast('❌ Karya belum tersimpan: '+(e && e.message && !e.code && !e.status ? e.message : LibraryAPI.msg(e))); }
+  finally{ kSibuk = false; ['kBtnDraft','kBtnTerbit'].forEach(i=>$(i).disabled = false); }
 }
-function likeKarya(id){
-  const k = DB.karya.find(x=>x.id===id); if(!k) return;
-  k.suka = (k.suka||0)+1; saveDB(); renderKarya();
+async function ubahStatusKarya(id, status){
+  const k = KARYA_SRV.find(x=>x.id===id); if(!k || kSibuk) return;
+  kSibuk = true;
+  try{
+    const hasil = await LibraryAPI.setKaryaStatus(id, status);
+    KARYA_SRV = KARYA_SRV.map(x=>x.id===id ? hasil : x);
+    renderKarya(); karyaKeGaleriPublik();
+    toast(status==='PUBLISHED' ? '🌐 Karya tampil di galeri publik' : '🙈 Karya disembunyikan dari galeri publik');
+  }catch(e){ toast('❌ Status belum berubah: '+LibraryAPI.msg(e)); }
+  finally{ kSibuk = false; }
 }
 async function delKarya(id){
-  const k = DB.karya.find(x=>x.id===id);
-  if(!confirm('Hapus karya "'+k.judul+'" oleh '+k.nama+'?')) return;
-  if(k.imgKey) await fileDel(k.imgKey);
-  DB.karya = DB.karya.filter(x=>x.id!==id);
-  saveDB(); renderKarya(); toast('🗑️ Karya dihapus');
+  const k = KARYA_SRV.find(x=>x.id===id); if(!k || kSibuk) return;
+  if(!confirm('Hapus karya "'+k.judul+'" oleh '+k.nama+'? Karya dan fotonya hilang permanen. (Untuk sekadar menyembunyikan, pakai tombol Sembunyikan.)')) return;
+  kSibuk = true;
+  try{
+    await LibraryAPI.deleteKarya(id, k.fotoPath);
+    KARYA_SRV = KARYA_SRV.filter(x=>x.id!==id);
+    if(kEditId === id) karyaResetForm();
+    renderKarya(); karyaKeGaleriPublik(); toast('🗑️ Karya dihapus');
+  }catch(e){ toast('❌ Karya belum terhapus: '+LibraryAPI.msg(e)); }
+  finally{ kSibuk = false; }
 }
-async function readKarya(id){
-  const k = DB.karya.find(x=>x.id===id); if(!k) return;
-  let imgHtml = '';
-  if(k.imgKey){
-    const d = await fileGet(k.imgKey);
-    if(d) imgHtml = `<img src="${d}" style="max-width:100%; border:3px solid var(--blue); border-radius:var(--doodle-r); margin:10px 0">`;
-  }
+function bukaKarya(k){
+  if(!k) return;
+  const img = k.fotoUrl ? `<img src="${esc(k.fotoUrl)}" alt="Foto karya ${esc(k.judul)}" style="max-width:100%; border:3px solid var(--blue); border-radius:var(--doodle-r); margin:10px 0">` : '';
   $('karyaReader').innerHTML = `
     <h2 class="doodle-font" style="font-size:26px">${esc(k.judul)}</h2>
     <p style="font-size:13px; font-weight:800; color:#4a6bb5">${esc(k.jenis)} · oleh <b>${esc(k.nama)}</b>${k.kelas?' ('+esc(k.kelas)+')':''} · ${fmtDateLong(k.tgl)}</p>
-    <div class="squiggle"></div>${imgHtml}
+    <div class="squiggle"></div>${img}
     <div style="white-space:pre-wrap; font-size:15.5px; line-height:1.8">${esc(k.isi)}</div>`;
   $('karyaModal').classList.add('show');
 }
-async function renderKarya(){
+function readKarya(id){ bukaKarya(KARYA_SRV.find(x=>x.id===id)); }
+function renderKarya(){
+  const el = $('karyaList'); if(!el) return;
+  if(!SB_USER){ $('kCount').textContent=''; el.innerHTML = '<p style="padding:14px">Masuk sebagai petugas untuk melihat dan mengelola karya.</p>'; return; }
+  if(KARYA_ERR){ $('kCount').textContent=''; el.innerHTML = `<p style="padding:14px">❌ ${esc(KARYA_ERR)} <button class="btn small" onclick="karyaMuat()">Coba lagi</button></p>`; return; }
   const q = ($('kSearch').value||'').toLowerCase(), fj = $('kFilterJenis').value;
-  const rows = DB.karya.filter(k=>
+  const rows = KARYA_SRV.filter(k=>
     (!q || k.judul.toLowerCase().includes(q) || k.nama.toLowerCase().includes(q)) && (!fj || k.jenis===fj));
   $('kCount').textContent = rows.length + ' karya';
-  const JICON = {'Cerita / Cerpen':'📖','Puisi':'🌸','Pantun':'🎭','Dongeng':'🏰','Gambar / Komik':'🎨','Laporan Membaca':'📝','Lainnya':'⭐'};
-  const cards = await Promise.all(rows.map(async k=>{
-    let thumb = '';
-    if(k.imgKey){ const d = await fileGet(k.imgKey);
-      if(d) thumb = `<img src="${d}" style="width:100%; height:120px; object-fit:cover; border-radius:12px 4px 12px 4px; border:2px solid var(--line); margin-bottom:6px">`; }
+  el.innerHTML = rows.map(k=>{
+    const st = K_STATUS[k.status] || K_STATUS.DRAFT;
+    const thumb = k.fotoUrl
+      ? `<img src="${esc(k.fotoUrl)}" alt="" loading="lazy" style="width:100%; height:120px; object-fit:cover; border-radius:12px 4px 12px 4px; border:2px solid var(--line); margin-bottom:6px">`
+      : '<div style="font-size:34px">'+(K_ICON[k.jenis]||'⭐')+'</div>';
     const cuplikan = k.isi ? esc(k.isi.slice(0,90)) + (k.isi.length>90?'…':'') : '';
+    const tombolStatus = k.status === 'PUBLISHED'
+      ? `<button class="btn small ghost" onclick="ubahStatusKarya('${k.id}','HIDDEN')">🙈 Sembunyikan</button>`
+      : `<button class="btn small green" onclick="ubahStatusKarya('${k.id}','PUBLISHED')">🌐 Terbitkan</button>`;
     return `<div class="card" style="margin-bottom:0; padding:14px">
-      ${thumb || '<div style="font-size:34px">'+(JICON[k.jenis]||'⭐')+'</div>'}
-      <h3 style="margin:2px 0">${esc(k.judul)}</h3>
+      ${thumb}<span class="badge ${st[0]}">${st[1]}</span>
+      <h3 style="margin:4px 0 2px">${esc(k.judul)}</h3>
       <p style="font-size:12.5px; color:#4a6bb5; font-weight:800">${esc(k.jenis)} · ${esc(k.nama)}${k.kelas?' ('+esc(k.kelas)+')':''}</p>
       <p style="font-size:13px; margin:5px 0">${cuplikan}</p>
-      <button class="btn small" onclick="readKarya('${k.id}')">📖 Baca</button>
-      <button class="btn small yellow" onclick="likeKarya('${k.id}')">❤️ ${k.suka||0}</button>
-      <button class="btn small red" onclick="delKarya('${k.id}')">🗑️</button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <button class="btn small" onclick="readKarya('${k.id}')">📖 Baca</button>
+        <button class="btn small yellow" onclick="editKarya('${k.id}')">✏️ Ubah</button>
+        ${tombolStatus}
+        <button class="btn small red" onclick="delKarya('${k.id}')">🗑️</button>
+      </div>
     </div>`;
-  }));
-  $('karyaList').innerHTML = cards.join('') || '<p style="padding:14px">Belum ada karya. Ayo pajang karya pertama! ✍️</p>';
+  }).join('') || '<p style="padding:14px">Belum ada karya. Ayo simpan karya pertama! ✍️</p>';
 }
+
+/* ---- karya lama di browser ini (localStorage) -> server. Tidak ada yang dihapus. ---- */
+function karyaLamaKey(k){ return 'lokal:' + k.id + '|' + k.judul + '|' + k.tgl; }
+function karyaLamaBelumDipindah(){
+  const sudah = new Set(KARYA_SRV.map(k=>k.legacyId).filter(Boolean));
+  return (DB.karya||[]).filter(k=>k && k.judul && !sudah.has(karyaLamaKey(k)));
+}
+function renderKaryaLama(){
+  const box = $('karyaLamaBox'); if(!box) return;
+  const n = (SB_USER && !KARYA_ERR) ? karyaLamaBelumDipindah().length : 0;
+  box.style.display = n ? '' : 'none';
+  if(n) box.innerHTML = `<b>📦 ${n} karya lama tersimpan hanya di browser ini.</b>
+    <div class="hint">Pindahkan ke server agar tampil di semua perangkat. Karya masuk sebagai <b>Draft</b> (periksa dulu sebelum diterbitkan). Salinan di browser ini tidak dihapus.</div>
+    <button class="btn small green" id="kBtnPindah" onclick="pindahKaryaLama()">⬆️ Pindahkan ${n} Karya ke Server</button>`;
+}
+function dataUrlKeWebp(d){
+  return new Promise((ok, gagal)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      c.toBlob(b=>b ? ok(b) : gagal(new Error('Gambar tidak dapat diproses.')), 'image/webp', .82);
+    };
+    img.onerror = ()=>gagal(new Error('Gambar lama tidak dapat dibaca.'));
+    img.src = d;
+  });
+}
+async function pindahKaryaLama(){
+  if(kSibuk) return;
+  const daftar = karyaLamaBelumDipindah(); if(!daftar.length) return;
+  kSibuk = true; $('kBtnPindah').disabled = true;
+  let ok = 0; const gagal = [];
+  for(const k of daftar){
+    try{
+      let blob = null;
+      if(k.imgKey){ const d = await fileGet(k.imgKey); if(d) blob = await dataUrlKeWebp(d); }
+      const jenis = Object.keys(K_ICON).includes(k.jenis) ? k.jenis : 'Lainnya';
+      const baru = await LibraryAPI.createKarya({ judul:k.judul, jenis, isi:k.isi||'', nama:k.nama, kelas:k.kelas||'',
+        status:'DRAFT', legacyId:karyaLamaKey(k), createdAt:(k.tgl ? k.tgl+'T08:00:00+07:00' : null) }, blob);
+      KARYA_SRV.unshift(baru); ok++;
+    }catch(e){ gagal.push((k.judul||'?')+' — '+LibraryAPI.msg(e)); }
+  }
+  kSibuk = false;
+  renderKarya(); renderKaryaLama();
+  toast(gagal.length ? '⚠️ '+ok+' karya dipindah, '+gagal.length+' gagal: '+gagal[0] : '✅ '+ok+' karya lama dipindah sebagai Draft');
+}
+
+/* ---- GALERI KARYA PUBLIK: karya_publik() hanya mengembalikan PUBLISHED. Tidak ada konten bawaan. ---- */
+const KP_GRUP = { semua:null, cerita:['Cerita / Cerpen','Dongeng'], puisi:['Puisi','Pantun'], gambar:['Gambar / Komik'] };
+const KP_PER = 24;
+const KP = { grup:'semua', rows:[], total:0, preview:[], sibuk:false, error:'', seq:0, okFull:false, okPrev:false };
+const KP_KOSONG = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>';
+function kpPesan(html){ return `<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">${html}</div>`; }
+function pubKaryaCard(k){
+  const gambar = k.fotoUrl
+    ? `<div class="sk-img" style="padding:0"><img src="${esc(k.fotoUrl)}" alt="Foto karya ${esc(k.judul)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='${K_ICON[k.jenis]||'⭐'}';this.remove()"></div>`
+    : `<div class="sk-img">${K_ICON[k.jenis]||'⭐'}</div>`;
+  return `<div class="karya-skeleton-card" style="cursor:pointer" tabindex="0" role="button"
+      onclick="pubKaryaBaca('${k.id}')" onkeydown="if(event.key==='Enter')pubKaryaBaca('${k.id}')">
+    ${gambar}
+    <div class="sk-body">
+      <span class="badge b-blue">${esc(k.jenis)}</span>
+      <h4>${esc(k.judul)}</h4>
+      <p>Oleh: <b>${esc(k.nama)}${k.kelas?' (Kelas '+esc(k.kelas)+')':''}</b></p>
+      ${k.isi ? `<div class="sk-text">${esc(k.isi.slice(0,160))}</div>` : ''}
+    </div></div>`;
+}
+function pubKaryaBaca(id){ bukaKarya(KP.rows.concat(KP.preview).find(k=>k.id===id)); }
+function pubKaryaRender(){
+  const pv = $('pubKaryaPreviewGrid'), full = $('pubKaryaFullGrid'), more = $('pubKaryaMore');
+  const galat = '⚠️ Galeri karya belum bisa dimuat. Periksa koneksi internet. <button class="btn small" onclick="pubKaryaSegarkan()">Coba lagi</button>';
+  if(pv) pv.innerHTML = (KP.errPrev || KP.error) && !KP.preview.length && !KP.okPrev ? kpPesan(galat) : (KP.preview.length ? KP.preview.map(pubKaryaCard).join('') : (KP.okPrev ? KP_KOSONG : kpPesan('⏳ Memuat karya…')));
+  if(full){
+    full.innerHTML = KP.error && !KP.rows.length ? kpPesan(galat)
+      : KP.rows.length ? KP.rows.map(pubKaryaCard).join('')
+      : (KP.okFull ? (KP.grup === 'semua' ? KP_KOSONG : kpPesan('Belum ada karya pada kategori ini.')) : kpPesan('⏳ Memuat karya…'));
+  }
+  if(more){
+    more.style.display = KP.rows.length < KP.total ? '' : 'none';
+    more.disabled = KP.sibuk; more.textContent = KP.sibuk ? '⏳ Memuat…' : 'Muat karya lainnya';
+  }
+}
+/* reset=true: mulai dari awal (ganti kategori / muat ulang). false: tambah halaman berikutnya. */
+async function pubKaryaMuat(reset){
+  if(!(window.LibraryAPI && LibraryAPI.enabled)){ KP.error = 'x'; KP.errPrev = true; pubKaryaRender(); return; }
+  const my = ++KP.seq, grup = KP.grup;
+  KP.sibuk = true; KP.error = '';
+  if(reset){ KP.rows = []; KP.total = 0; }
+  pubKaryaRender();
+  try{
+    const d = await LibraryAPI.karyaPublik(KP_GRUP[grup], KP_PER, reset ? 0 : KP.rows.length);
+    if(my !== KP.seq) return;                     // permintaan lama tidak boleh menimpa yang baru
+    KP.rows = reset ? d.rows : KP.rows.concat(d.rows.filter(r=>!KP.rows.some(x=>x.id===r.id)));
+    KP.total = d.total; KP.okFull = true;
+  }catch(e){
+    console.error('karya_publik', e);
+    if(my === KP.seq) KP.error = LibraryAPI.msg(e) || 'x';
+  }finally{ if(my === KP.seq) KP.sibuk = false; }
+  if(my === KP.seq) pubKaryaRender();
+}
+async function pubKaryaPreviewMuat(){
+  // Beranda selalu menampilkan 3 karya terbaru dari semua kategori, apa pun filter galeri lengkap.
+  KP.errPrev = false;
+  try{
+    const d = await LibraryAPI.karyaPublik(null, 3, 0);
+    KP.preview = d.rows; KP.okPrev = true;
+  }catch(e){ console.error('karya preview', e); KP.errPrev = true; }
+  pubKaryaRender();
+}
+function pubKaryaSegarkan(){ pubKaryaPreviewMuat(); pubKaryaMuat(true); }
+function pubKaryaFilter(g){
+  if(!(g in KP_GRUP) || g === KP.grup) return;
+  KP.grup = g;
+  document.querySelectorAll('#pubKaryaTabs button').forEach(b=>b.className = 'btn small' + (b.dataset.grup === g ? '' : ' ghost'));
+  pubKaryaMuat(true);
+}
+
 ['kSearch','kFilterJenis'].forEach(i=>$(i).addEventListener('input', renderKarya));
 $('eSearch').addEventListener('input', renderEbooks);
 
@@ -4910,6 +5082,7 @@ async function sbLoadAll(){
       LibraryAPI.pullEbooks() ]);
     DB.members = members; DB.books = books; DB.loans = loans; DB.titles = titles; DB.ebooks = ebooks;
     saveDB(); renderAll();
+    karyaMuat();            // karya siswa dari server
     scMuatSesiKelas();      // sesi "Pinjam ke Kelas" yang masih berjalan
     if(!window._sbSub){ window._sbSub = LibraryAPI.subscribe(sbRealtimeRefresh); }
   }catch(e){ toast('❌ Muat data pusat: '+LibraryAPI.msg(e)); }
@@ -4951,6 +5124,7 @@ function sbSetAuthUI(user){
   const logout = $('sbLogoutButton'); if(logout) logout.style.display = user ? 'block' : 'none';
   sbStatus(user ? 'ready' : 'connected');
   renderPetugasPageUI(user);
+  if(!user) karyaMuat();   // keluar: kosongkan daftar karya petugas
 }
 async function sbLogin(){
   if (!window.LibraryAPI || !LibraryAPI.enabled) {
@@ -5011,7 +5185,8 @@ const PUB = { books: [], loaded: false, student: null, scan: null };
 let PUB_LIMIT = 60;
 
 async function pubBoot(){
-  if(!(window.LibraryAPI && LibraryAPI.enabled)){ pubStatsError(); pubCatalogError(); return; }
+  if(!(window.LibraryAPI && LibraryAPI.enabled)){ pubStatsError(); pubCatalogError(); pubKaryaSegarkan(); return; }
+  pubKaryaSegarkan();    // galeri karya (anon-safe RPC), tidak menunggu katalog
   // Statistik agregat (RPC public_stats) — browser tak menerima PII, hanya angka.
   try{
     const s = await LibraryAPI.stats();
@@ -5101,8 +5276,6 @@ function renderPubCatalog(){
 }
 function renderPubHomePreview(){
   const g=$('pubBookPreviewGrid'); if(g) g.innerHTML=PUB.books.slice(0,6).map(pubBookCard).join('') || '';
-  const k=$('pubKaryaPreviewGrid'); if(k) k.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>';
-  const kf=$('pubKaryaFullGrid'); if(kf) kf.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>';
   const eb=$('pubEbookGrid'); if(eb) eb.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book belum tersedia.</div>';
   // Pasang event listeners search+filter (sekali saja, flag agar tidak duplikat)
   const si=$('pubBookSearchInput');

@@ -70,6 +70,21 @@
       tahun: b.tahun || null, kategori: b.kategori || null, jumlah: b.jumlah, tersedia: b.tersedia,
       legacy_id: (b.id && /^B\d/.test(b.id)) ? b.id : null };
   }
+  var KARYA_BUCKET = 'karya-siswa';
+  function karyaFotoUrl(path) {
+    if (!path || !sb) return '';
+    return sb.storage.from(KARYA_BUCKET).getPublicUrl(path).data.publicUrl || '';
+  }
+  function rowToKarya(r) {
+    return { id: r.id, judul: r.judul, jenis: r.jenis, isi: r.isi || '', nama: r.nama, kelas: r.kelas || '',
+      fotoPath: r.foto_path || '', fotoUrl: karyaFotoUrl(r.foto_path), status: r.status || 'PUBLISHED',
+      legacyId: r.legacy_id || '', tgl: (r.created_at || '').slice(0, 10), createdAt: r.created_at || '' };
+  }
+  function karyaToRow(k) {
+    var row = { judul: k.judul, jenis: k.jenis, isi: k.isi || null, nama: k.nama, kelas: k.kelas || null };
+    if (k.status) row.status = k.status;
+    return row;
+  }
   function rowToEbook(r) {
     return { id: r.id, judul: r.judul, pengarang: r.pengarang || '', kategori: r.kategori || '',
       url: r.url || '', dibaca: r.dibaca || 0 };
@@ -126,6 +141,8 @@
     if (/EKSEMPLAR_TIDAK_DITEMUKAN/.test(m)) return 'Eksemplar tidak ditemukan.';
     if (/SESI_TIDAK_AKTIF/.test(m)) return 'Sesi kelas sudah ditutup. Buka sesi baru dulu.';
     if (/KELAS_WAJIB_DIISI/.test(m)) return 'Kelas wajib diisi untuk peminjaman ke kelas.';
+    if (/karya_ada_isi/.test(m)) return 'Karya harus punya isi tulisan atau foto.';
+    if (/karya_(judul|nama|jenis|isi)_check/.test(m)) return 'Data karya tidak valid (judul/nama kosong atau terlalu panjang, jenis salah, atau isi lebih dari 20.000 huruf).';
     if (/row-level security|permission denied/.test(m)) return 'Akses ditolak — login sebagai petugas dulu.';
     // Cover: petugas tidak boleh melihat istilah teknis Supabase/PostgREST.
     if (/[Bb]ucket not found|PGRST204|cover_path/.test(m)) return 'Penyimpanan cover belum siap. Hubungi admin.';
@@ -337,6 +354,57 @@
     async assignTitle(bookIds, titleId) {
       return throwIf(await sb.rpc('assign_title_to_copies',
         { p_book_ids: bookIds, p_title_id: titleId }));
+    },
+
+    // ---------- karya siswa ----------
+    // Petugas: tabel karya (RLS authenticated). Publik: RPC karya_publik (hanya PUBLISHED).
+    // Foto: bucket publik karya-siswa, path <karya_id>/<waktu>.webp. Upload DULU, baris DB sesudahnya;
+    // bila baris gagal, file dihapus lagi — tidak ada karya publik berfoto rusak, tidak ada file yatim.
+    karyaFotoUrl: karyaFotoUrl,
+    async pullKarya() { return (await this._pullAll('karya', 'created_at', false)).map(rowToKarya); },
+    async karyaPublik(jenis, limit, offset) {
+      var d = throwIf(await sb.rpc('karya_publik', { p_jenis: jenis && jenis.length ? jenis : null,
+        p_limit: limit || 24, p_offset: offset || 0 }));
+      if (!d || !Array.isArray(d.rows)) throw new Error('Jawaban server tidak lengkap.');
+      return { total: d.total || 0, rows: d.rows.map(rowToKarya) };
+    },
+    async _uploadKaryaFoto(id, blob) {
+      var path = id + '/' + Date.now() + '.webp';
+      throwIf(await sb.storage.from(KARYA_BUCKET).upload(path, blob,
+        { contentType: 'image/webp', upsert: false, cacheControl: '31536000' }));
+      return path;
+    },
+    async _hapusKaryaFoto(path) {
+      if (path) { try { await sb.storage.from(KARYA_BUCKET).remove([path]); } catch (_) {} }
+    },
+    // k: {judul, jenis, isi, nama, kelas, status?, legacyId?}; blob: WebP hasil optimizeCover atau null.
+    async createKarya(k, blob) {
+      var id = (global.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+      var path = blob ? await this._uploadKaryaFoto(id || 'k' + Date.now(), blob) : null;
+      var row = karyaToRow(k); row.foto_path = path; if (id) row.id = id;
+      if (k.legacyId) row.legacy_id = k.legacyId;
+      if (k.createdAt) row.created_at = k.createdAt;
+      try { return rowToKarya(throwIf(await sb.from('karya').insert(row).select().single())); }
+      catch (e) { await this._hapusKaryaFoto(path); throw e; }
+    },
+    // blob = foto baru; hapusFoto = true membuang foto lama; keduanya kosong = foto tidak diubah.
+    async updateKarya(id, k, oldPath, blob, hapusFoto) {
+      var row = karyaToRow(k), path = null;
+      if (blob) { path = await this._uploadKaryaFoto(id, blob); row.foto_path = path; }
+      else if (hapusFoto) row.foto_path = null;
+      var res;
+      try { res = rowToKarya(throwIf(await sb.from('karya').update(row).eq('id', id).select().single())); }
+      catch (e) { await this._hapusKaryaFoto(path); throw e; }
+      if ((blob || hapusFoto) && oldPath && oldPath !== path) await this._hapusKaryaFoto(oldPath);
+      return res;
+    },
+    async setKaryaStatus(id, status) {
+      return rowToKarya(throwIf(await sb.from('karya').update({ status: status }).eq('id', id).select().single()));
+    },
+    // Hanya file milik karya ini (path-nya sendiri) yang dihapus.
+    async deleteKarya(id, fotoPath) {
+      throwIf(await sb.from('karya').delete().eq('id', id));
+      await this._hapusKaryaFoto(fotoPath);
     },
 
     // ---------- circulation (atomic on the server) ----------
