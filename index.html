@@ -804,7 +804,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
     <div class="pub-stat-card">
       <div class="ico">🎨</div>
-      <div class="num" id="pubStatKarya">50+</div>
+      <div class="num" id="pubStatKarya">—</div>
       <div class="lbl">Karya &amp; E-Book</div>
       <div class="sub-hint">Kreativitas Siswa Sukasari 4</div>
     </div>
@@ -882,33 +882,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
     <div class="squiggle"></div>
     <div class="grid3" id="pubKaryaPreviewGrid">
-      <div class="karya-skeleton-card">
-        <div class="sk-img">🎨</div>
-        <div class="sk-body">
-          <span class="badge b-blue">Cerita / Cerpen</span>
-          <h4>PETUALANGAN DI HUTAN PINUS</h4>
-          <p>Oleh: <b>Siswa A (Kelas 3A)</b></p>
-          <div class="sk-text">Pada suatu hari yang cerah di pinggir hutan pinus...</div>
-        </div>
-      </div>
-      <div class="karya-skeleton-card">
-        <div class="sk-img">✍️</div>
-        <div class="sk-body">
-          <span class="badge b-green">Puisi</span>
-          <h4>INDONESIAKU NEGERIKU ELOK</h4>
-          <p>Oleh: <b>Budi Santoso (Kelas 5B)</b></p>
-          <div class="sk-text">Hijau sawah membentang luas, angin berhembus menyejukkan...</div>
-        </div>
-      </div>
-      <div class="karya-skeleton-card">
-        <div class="sk-img">🖼️</div>
-        <div class="sk-body">
-          <span class="badge b-orange">Gambar / Komik</span>
-          <h4>SEKOLAH BERSALJU IMPIAN</h4>
-          <p>Oleh: <b>Aisyah Halimah (Kelas 3A)</b></p>
-          <div class="sk-text">Lukisan imajinasi suasana sekolah impian yang penuh warna...</div>
-        </div>
-      </div>
+    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>
     </div>
   </div>
 
@@ -1024,24 +998,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
     </div>
   </div>
   <div class="grid3" id="pubKaryaFullGrid">
-    <div class="karya-skeleton-card">
-      <div class="sk-img">🎨</div>
-      <div class="sk-body">
-        <span class="badge b-blue">Cerita</span>
-        <h4>PETUALANGAN DI HUTAN PINUS</h4>
-        <p>Oleh: <b>Siswa A (Kelas 3A)</b></p>
-        <div class="sk-text">Kisah petualangan seru sekelompok sahabat menelusuri keindahan hutan pinus...</div>
-      </div>
-    </div>
-    <div class="karya-skeleton-card">
-      <div class="sk-img">✍️</div>
-      <div class="sk-body">
-        <span class="badge b-green">Puisi</span>
-        <h4>INDONESIAKU NEGERIKU ELOK</h4>
-        <p>Oleh: <b>Budi Santoso (Kelas 5B)</b></p>
-        <div class="sk-text">Untaian kata tentang keindahan alam nusantara dan rasa cinta tanah air...</div>
-      </div>
-    </div>
+    <div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>
   </div>
 </div>
 
@@ -1120,7 +1077,7 @@ footer{text-align:center; padding:18px; font-size:13px; color:#4a6bb5; font-weig
           </div>
         </div>
         <div style="margin-top:14px;font-size:12px;color:#888">
-          ℹ️ Karya Siswa: belum ada endpoint publik — <i>segera hadir</i>
+          ℹ️ Karya Siswa: belum ada endpoint publik — <i>belum tersedia</i>
         </div>
       </div>
     </div>
@@ -5063,7 +5020,7 @@ async function pubBoot(){
     if($('pubStatBooks'))   $('pubStatBooks').textContent   = (s.total_judul ?? '—');
     if($('pubStatLoans'))   $('pubStatLoans').textContent   = (s.sedang_dipinjam ?? '—');
     // #pubStatKarya: belum ada endpoint publik karya; jujur tampilkan '—'
-    if($('pubStatKarya')){ $('pubStatKarya').textContent = '—'; $('pubStatKarya').title = 'Data segera hadir'; }
+    if($('pubStatKarya')){ $('pubStatKarya').textContent = '—'; $('pubStatKarya').title = 'Data belum tersedia'; }
     // Halaman statistik lengkap
     if($('pubStFullAnggota'))   $('pubStFullAnggota').textContent   = (s.total_anggota ?? '—');
     if($('pubStFullJudul'))     $('pubStFullJudul').textContent     = (s.total_judul ?? '—');
@@ -5144,8 +5101,8 @@ function renderPubCatalog(){
 }
 function renderPubHomePreview(){
   const g=$('pubBookPreviewGrid'); if(g) g.innerHTML=PUB.books.slice(0,6).map(pubBookCard).join('') || '';
-  const k=$('pubKaryaPreviewGrid'); if(k) k.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
-  const kf=$('pubKaryaFullGrid'); if(kf) kf.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa segera hadir.</div>';
+  const k=$('pubKaryaPreviewGrid'); if(k) k.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>';
+  const kf=$('pubKaryaFullGrid'); if(kf) kf.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">✍️ Galeri karya siswa belum tersedia.</div>';
   const eb=$('pubEbookGrid'); if(eb) eb.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#4a6bb5">📱 Koleksi e-book belum tersedia.</div>';
   // Pasang event listeners search+filter (sekali saja, flag agar tidak duplikat)
   const si=$('pubBookSearchInput');
