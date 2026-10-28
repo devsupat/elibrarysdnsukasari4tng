@@ -12,7 +12,7 @@ const cek = (n, c, d) => (c ? ok : no)(n, d);
     const c = await b.newContext({ viewport: vp, permissions: [] });
     const p = await c.newPage();
     const errs = [];
-    p.on('pageerror', e => errs.push(e.message));
+    p.on('pageerror', e => errs.push(e.message + ' @ ' + String(e.stack || '').split('\n').slice(1, 3).join(' ')));
     await p.goto('http://127.0.0.1:8000/index.html', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.LibraryAPI && LibraryAPI.enabled && typeof window.goPage === 'function');
     await p.evaluate(() => goPage('pub-akses'));

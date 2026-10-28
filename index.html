@@ -2134,7 +2134,7 @@ function addDays(iso, n){ const d = new Date(iso+'T00:00:00'); d.setDate(d.getDa
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function bookCoverHTML(url, icon='📖', extra=''){
   return `<div class="book-cover ${extra}">${url
-    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.onerror=null;this.remove();this.parentElement.textContent='${icon}'">`
+    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.onerror=null;var q=this.parentElement;this.remove();if(q)q.textContent='${icon}'">`
     : icon}</div>`;
 }
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2600); }
@@ -2471,7 +2471,7 @@ const COVER_MAX_INPUT = 12 * 1024 * 1024;
 function coverPreview(el, url){
   const box = $(el); if(!box) return;
   box.innerHTML = url
-    ? `<img src="${esc(url)}" alt="Cover buku" onerror="this.remove();this.parentElement.textContent='📖'">`
+    ? `<img src="${esc(url)}" alt="Cover buku" onerror="var q=this.parentElement;this.remove();if(q)q.textContent='📖'">`
     : '📖';
 }
 
